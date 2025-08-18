@@ -2,108 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Time Converter — codingo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Time Converter</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta/dist/vanta.triangles.min.js"></script>
 </head>
 <body>
-  <!-- Triangulated animated background (two canvases for cross-fade) -->
-  <canvas id="tri-a" class="tri-layer" aria-hidden="true"></canvas>
-  <canvas id="tri-b" class="tri-layer" aria-hidden="true"></canvas>
-
-  <header class="site-header">
-    <a href="https://codingo.com" class="logo-link" target="_blank" rel="noopener">
-      <video autoplay loop muted playsinline class="logo-video">
-        <source src="codingo-logo.webm" type="video/webm" />
-        <img src="fallback-logo.png" alt="Codingo Logo" />
-      </video>
-    </a>
+  <div id="vanta-bg"></div>
+  <div class="container">
     <h1>Time Converter</h1>
-  </header>
 
-  <main>
     <div class="controls">
-      <div class="add-wrap">
-        <input id="zone-input" list="tzlist" class="zone-input"
-               placeholder="Add a timezone: e.g., Gold Coast, San Fr, London, Tokyo, PT…" />
-        <datalist id="tzlist"></datalist>
-        <button id="add-zone" class="btn-codingo" title="Add selected timezone">+ Add timezone</button>
-        <button id="remove-all" class="btn-ghost" title="Remove all timezones">Remove all</button>
-      </div>
-
-      <div class="sort-wrap">
-        <label for="sort-select">Sort by</label>
-        <select id="sort-select">
-          <option value="custom">-- Custom --</option>
-          <option value="city-asc">↑ City (asc.)</option>
-          <option value="city-desc">↓ City (desc.)</option>
-          <option value="country-asc">↑ Country (asc.)</option>
-          <option value="country-desc">↓ Country (desc.)</option>
-          <option value="time-asc">↑ Time (asc.)</option>
-          <option value="time-desc">↓ Time (desc.)</option>
-        </select>
-      </div>
-
-      <p class="shareable">Shareable links by copying the current URL</p>
+      <input 
+        id="timezone-input" 
+        type="text" 
+        placeholder="Add a timezone: e.g., Gold Coast, San Fr, London, Tokyo, PT..."
+      />
+      <button id="add-timezone" class="btn-primary">+ Add timezone</button>
+      <button id="remove-all" class="btn-secondary">Remove all</button>
     </div>
 
-    <div id="zones"></div>
+    <div class="sort">
+      <label for="sort-select">Sort by</label>
+      <select id="sort-select">
+        <option value="city-asc">↑ City (asc.)</option>
+        <option value="city-desc">↓ City (desc.)</option>
+        <option value="offset-asc">↑ Offset</option>
+        <option value="offset-desc">↓ Offset</option>
+      </select>
+    </div>
 
-    <section class="permalink">
-      <h2 class="sr-only">Shareable Permalink</h2>
-      <div class="permalink-row">
-        <select id="permalink-mode" title="Time to use in the link">
-          <option value="selected">Use selected time</option>
-          <option value="now">Use now</option>
-        </select>
-        <input id="permalink-url" readonly />
-        <button id="copy-link" class="btn-codingo" title="Copy to clipboard">Copy</button>
-      </div>
-    </section>
-  </main>
+    <p class="share">Shareable links by copying the current URL</p>
+    <div id="timezones"></div>
 
-  <footer>
-    <nav class="socials-icons" aria-label="Social links">
-      <a class="icon" href="https://youtube.com/codingo" target="_blank" rel="noopener" aria-label="YouTube">
-        <svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path d="M23.5 6.2a3.4 3.4 0 0 0-2.4-2.4C19 3.3 12 3.3 12 3.3s-7 0-9.1.5A3.4 3.4 0 0 0 .5 6.2 35.6 35.6 0 0 0 0 12a35.6 35.6 0 0 0 .5 5.8 3.4 3.4 0 0 0 2.4 2.4c2.1.5 9.1.5 9.1.5s7 0 9.1-.5a3.4 3.4 0 0 0 2.4-2.4A35.6 35.6 0 0 0 24 12a35.6 35.6 0 0 0-.5-5.8ZM9.6 15.5V8.5L15.9 12l-6.3 3.5Z"/></svg>
-      </a>
-      <a class="icon" href="https://x.com/codingo_" target="_blank" rel="noopener" aria-label="X (Twitter)">
-        <svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path d="M18.244 2H21l-6.48 7.41L22.5 22h-6.563l-5.137-6.7L4.8 22H2l6.9-7.89L1.5 2h6.75l4.65 6.08L18.244 2Zm-2.3 18h2.086L7.98 4H5.82L15.944 20Z"/></svg>
-      </a>
-      <a class="icon" href="https://github.com/codingo/" target="_blank" rel="noopener" aria-label="GitHub">
-        <svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.11.82-.26.82-.58l-.02-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.35-1.77-1.35-1.77-1.1-.75.08-.74.08-.74 1.22.09 1.87 1.25 1.87 1.25 1.08 1.85 2.83 1.31 3.52 1 .11-.78.42-1.31.76-1.61-2.67-.31-5.48-1.33-5.48-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.54.12-3.2 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.9.12 3.2.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.61-5.49 5.92.43.37.82 1.1.82 2.22l-.01 3.3c0 .33.22.7.83.58A12 12 0 0 0 12 .5Z"/></svg>
-      </a>
-      <a class="icon" href="https://www.linkedin.com/in/skeltonm/" target="_blank" rel="noopener" aria-label="LinkedIn">
-        <svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path d="M4.98 3.5a2.5 2.5 0 1 1 .02 5.001A2.5 2.5 0 0 1 4.98 3.5ZM3 9h4v12H3V9Zm7 0h3.8v1.64h.05c.53-.96 1.83-1.97 3.77-1.97C21.3 8.67 22 11 22 14.3V21H18v-6.02c0-1.44-.03-3.3-2.01-3.3-2.02 0-2.33 1.58-2.33 3.2V21H10V9Z"/></svg>
-      </a>
-    </nav>
-  </footer>
+    <div class="linkbar">
+      <button id="use-selected-time" class="btn-primary">Use selected time</button>
+      <input id="share-link" type="text" readonly />
+      <button id="copy-link" class="btn-secondary">Copy</button>
+    </div>
 
-  <!-- Modal: Edit Date & Time -->
-  <dialog id="edit-dialog">
-    <form method="dialog" class="edit-card">
-      <div class="edit-header">
-        <span id="edit-city" class="edit-city">City</span>
-        <span id="edit-face" class="face">🙂</span>
+    <footer>
+      <div class="socials">
+        <a href="https://twitter.com/codingo" target="_blank">
+          <img src="twitter.svg" alt="Twitter" class="social-icon"/>
+        </a>
+        <a href="https://github.com/codingo" target="_blank">
+          <img src="github.svg" alt="GitHub" class="social-icon"/>
+        </a>
       </div>
-      <div class="edit-row">
-        <label>Set date</label>
-        <input id="edit-date" type="date" />
-      </div>
-      <div class="edit-row">
-        <label>Set time</label>
-        <input id="edit-time" type="time" step="60" />
-      </div>
-      <div class="edit-actions">
-        <button id="edit-close" class="btn-ghost">Close</button>
-        <button id="edit-apply" class="btn-codingo">Apply</button>
-      </div>
-    </form>
-  </dialog>
+    </footer>
+  </div>
 
-  <!-- Trianglify (bundled UMD) -->
-  <script src="https://unpkg.com/trianglify@4/dist/trianglify.bundle.js"></script>
-  <!-- App -->
-  <script type="module" src="app.js"></script>
+  <script src="script.js"></script>
+  <script>
+    VANTA.TRIANGLES({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      minHeight: 200.00,
+      minWidth: 200.00,
+      scale: 1.00,
+      scaleMobile: 1.00,
+      color1: 0x1a1aff,
+      color2: 0x00ff99,
+      backgroundColor: 0x000000,
+      size: 1.50,
+      speed: 2.00
+    })
+  </script>
 </body>
 </html>
