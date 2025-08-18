@@ -1,3 +1,4 @@
+// Time/format helpers
 export function toTimeZone(date, zone) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: zone, hour12: false,
@@ -24,10 +25,10 @@ export function isBusinessHours(date, zone) {
   return h >= 8 && h < 16;
 }
 
+// Search helpers
 export function normalize(s){
   return s.toLowerCase().replace(/[_/,-]/g," ").replace(/\s+/g," ").trim();
 }
-
 export function tokensOrderedMatch(qTokens, hay){
   let lastIdx = 0;
   for (const t of qTokens){
@@ -36,4 +37,10 @@ export function tokensOrderedMatch(qTokens, hay){
     lastIdx = idx + t.length;
   }
   return true;
+}
+
+// Validation for datetime-local during typing
+export function isValidDateTimeLocal(v){
+  // yyyy-MM-ddTHH:mm
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v);
 }
