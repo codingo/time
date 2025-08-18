@@ -1,40 +1,30 @@
-/* ===============================
-   Global theme + animated gradient
-   =============================== */
 :root{
-  --g1:#0b1324; --g2:#13243c; --g3:#1b344e; --g4:#21425e;
   --ok:rgba(34,197,94,.30);
   --bad:rgba(239,68,68,.30);
   --icon:#e6f3ff; --icon-hover:#9bd1ff;
 }
+
+/* page base */
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   color:#f1f5f9; text-align:center;
-  background:transparent; position:relative; min-height:100svh;
+  min-height:100svh; position:relative; background:#0b1324; /* deep fallback */
 }
 
-/* Animated background layer */
-.bg-anim{
+/* --- Trianglify background (two canvases that cross-fade) --- */
+.tri-layer{
   position:fixed; inset:0; z-index:-1;
-  background:
-    radial-gradient(1000px 600px at 10% 10%, #17324d 0%, transparent 60%),
-    radial-gradient(1000px 700px at 90% 20%, #0f274a 0%, transparent 60%),
-    radial-gradient(1200px 800px at 50% 100%, #1a3a5a 0%, transparent 60%),
-    linear-gradient(-45deg,var(--g1),var(--g2),var(--g3),var(--g4));
-  background-size: 120% 120%, 120% 120%, 140% 140%, 400% 400%;
-  animation: bgDrift 22s ease-in-out infinite alternate;
-  filter: saturate(1.1) brightness(1.02);
+  width:100vw; height:100vh;
+  display:block;
+  opacity:0; transition:opacity 2.2s ease, transform 20s ease-in-out;
+  transform: scale(1.02); /* gentle drift */
 }
-@keyframes bgDrift{
-  0%   { background-position: 5% 10%, 95% 20%, 50% 105%,   0% 50%; }
-  50%  { background-position: 15% 0%, 80% 35%, 55% 95%, 100% 50%; }
-  100% { background-position: 10% 15%, 90% 10%, 60% 90%,   0% 50%; }
-}
-@media (prefers-reduced-motion:reduce){
-  .bg-anim{ animation:none; background-position:50% 50%,50% 50%,50% 50%,50% 50%; }
-}
+.tri-layer.active{ opacity:1; }
+/* subtle parallax drift (alternates when we swap layers) */
+.tri-layer.drift-a{ transform: translate3d(-1.2%, -0.8%, 0) scale(1.04); }
+.tri-layer.drift-b{ transform: translate3d( 1.2%,  0.8%, 0) scale(1.04); }
 
 /* Header */
 .site-header{padding:1rem 1rem 0}
@@ -72,8 +62,10 @@ main{max-width:860px;margin:0 auto;padding:1rem}
 .btn-codingo:focus-visible{ outline:2px solid #38bdf8; outline-offset:2px }
 .btn-codingo[disabled]{ opacity:.55; cursor:not-allowed }
 
-/* Zones */
+.shareable{opacity:.9;margin:.6rem 0 0}
 #zones{margin-top:12px}
+
+/* Zone rows */
 .zone-row{
   display:grid; grid-template-columns: 1fr auto auto; gap:10px;
   align-items:center; justify-content:space-between;
