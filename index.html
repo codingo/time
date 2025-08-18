@@ -10,6 +10,7 @@
   <header class="wrap">
     <h1>Timezones</h1>
     <div class="controls">
+      <div class="tiny muted">Base timezone: <span id="baseZoneLabel"></span></div>
       <input id="when" type="datetime-local" />
       <button id="nowBtn" title="Set to now">Now</button>
     </div>
@@ -29,9 +30,11 @@
   </main>
 
   <footer class="wrap tiny">
-    <span>🙂 between 08:00–16:00 local • ☹ outside</span>
+    <span>🙂 between 08:00–16:00 local on weekdays • ☹ otherwise</span>
   </footer>
 
+  <!-- NEW: alias data (self-hosted) -->
+  <script src="aliases.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
