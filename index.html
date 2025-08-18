@@ -7,11 +7,16 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Animated gradient background layer -->
+  <div class="bg-anim" aria-hidden="true"></div>
+
   <header class="site-header">
-    <video autoplay loop muted playsinline class="logo-video">
-      <source src="codingo-logo.webm" type="video/webm" />
-      <img src="fallback-logo.png" alt="Codingo Logo" />
-    </video>
+    <a href="https://codingo.com" class="logo-link" target="_blank" rel="noopener">
+      <video autoplay loop muted playsinline class="logo-video">
+        <source src="codingo-logo.webm" type="video/webm" />
+        <img src="fallback-logo.png" alt="Codingo Logo" />
+      </video>
+    </a>
     <h1>Time Converter</h1>
   </header>
 
@@ -30,15 +35,18 @@
   </main>
 
   <footer>
-    <div class="socials">
-      <a href="https://www.linkedin.com/in/skeltonm/" target="_blank" rel="noopener">LinkedIn</a> •
-      <a href="https://x.com/codingo_" target="_blank" rel="noopener">Twitter</a> •
-      <a href="https://github.com/codingo/" target="_blank" rel="noopener">GitHub</a> •
-      <a href="https://youtube.com/codingo" target="_blank" rel="noopener">YouTube</a>
-    </div>
-  </footer>
-
-  <!-- ES modules -->
-  <script type="module" src="app.js"></script>
-</body>
-</html>
+    <nav class="socials-icons" aria-label="Social links">
+      <!-- YouTube -->
+      <a class="icon" href="https://youtube.com/codingo" target="_blank" rel="noopener" aria-label="YouTube">
+        <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+          <path d="M23.5 6.2a3.4 3.4 0 0 0-2.4-2.4C19 3.3 12 3.3 12 3.3s-7 0-9.1.5A3.4 3.4 0 0 0 .5 6.2 35.6 35.6 0 0 0 0 12a35.6 35.6 0 0 0 .5 5.8 3.4 3.4 0 0 0 2.4 2.4c2.1.5 9.1.5 9.1.5s7 0 9.1-.5a3.4 3.4 0 0 0 2.4-2.4A35.6 35.6 0 0 0 24 12a35.6 35.6 0 0 0-.5-5.8ZM9.6 15.5V8.5L15.9 12l-6.3 3.5Z"/>
+        </svg>
+      </a>
+      <!-- X / Twitter -->
+      <a class="icon" href="https://x.com/codingo_" target="_blank" rel="noopener" aria-label="X (Twitter)">
+        <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+          <path d="M18.244 2H21l-6.48 7.41L22.5 22h-6.563l-5.137-6.7L4.8 22H2l6.9-7.89L1.5 2h6.75l4.65 6.08L18.244 2Zm-2.3 18h2.086L7.98 4H5.82L15.944 20Z"/>
+        </svg>
+      </a>
+      <!-- GitHub -->
+      <a class="icon" href="https://githu
