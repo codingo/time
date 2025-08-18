@@ -5,12 +5,20 @@
   --g1:#0f172a; --g2:#1e293b; --g3:#334155; --g4:#475569; /* gradient stops */
   --ok:rgba(34,197,94,.30);
   --bad:rgba(239,68,68,.30);
+  --icon:#e6f3ff;          /* light icon fill */
+  --icon-hover:#9bd1ff;    /* hover tint */
 }
 *{box-sizing:border-box}
-html,body{margin:0}
+html,body{margin:0;height:100%}
 body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
   color:#f1f5f9; text-align:center;
+  background:#0f172a; /* fallback behind the animated layer */
+}
+
+/* Dedicated animated gradient layer so it can't get “covered” */
+.bg-anim{
+  position:fixed; inset:0; z-index:-1;
   background:linear-gradient(-45deg,var(--g1),var(--g2),var(--g3),var(--g4));
   background-size:400% 400%;
   animation:codingoGradient 15s ease infinite;
@@ -21,13 +29,14 @@ body{
   100%{background-position:0% 50%}
 }
 @media (prefers-reduced-motion:reduce){
-  body{ animation:none; background-position:50% 50%; }
+  .bg-anim{ animation:none; background-position:50% 50%; }
 }
 
 /* ===============================
    Header
    =============================== */
 .site-header{padding:1rem 1rem 0}
+.logo-link{display:inline-block; line-height:0}
 .logo-video{width:180px;display:block;margin:0 auto 1rem;border-radius:12px}
 
 /* ===============================
@@ -82,9 +91,18 @@ main{max-width:860px;margin:0 auto;padding:1rem}
 .remove:hover{ background:#121a2a }
 
 /* ===============================
-   Footer + socials
+   Footer + social icons (like codingo.com)
    =============================== */
 footer{margin:24px 0 28px}
-.socials{font-size:1.05rem}
-.socials a{color:#38bdf8;text-decoration:none}
-.socials a:hover{text-decoration:underline}
+.socials-icons{
+  display:flex; gap:18px; align-items:center; justify-content:center;
+  padding:10px 0;
+}
+.icon{
+  display:inline-flex; width:32px; height:32px; border-radius:6px;
+  align-items:center; justify-content:center; background:rgba(0,0,0,.15);
+  border:1px solid rgba(255,255,255,.08); transition:transform .1s ease, background .2s ease;
+}
+.icon:hover{ transform:translateY(-1px); background:rgba(255,255,255,.12) }
+.icon svg{ width:22px; height:22px; fill:var(--icon) }
+.icon:hover svg{ fill:var(--icon-hover) }
