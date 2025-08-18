@@ -13,24 +13,13 @@
 
   <header class="wrap header">
     <a class="brand" href="https://codingo.com" target="_blank" rel="noopener">
-      <img src="assets/logo.svg" alt="codingo" class="logo">
+      <img src="assets/codingo-logo.svg" alt="codingo" class="logo">
       <span class="brand-text">codingo</span>
     </a>
-
-    <nav class="social">
-      <a href="https://github.com/codingo" aria-label="GitHub" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" width="22" height="22" role="img"><path fill="currentColor" d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58 0-.29-.01-1.06-.02-2.09-3.34.73-4.05-1.61-4.05-1.61-.55-1.39-1.35-1.76-1.35-1.76-1.1-.75.08-.73.08-.73 1.22.09 1.86 1.25 1.86 1.25 1.08 1.84 2.83 1.31 3.52 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.31-.54-1.56.12-3.26 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.7.24 2.95.12 3.26.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22 0 1.6-.02 2.89-.02 3.28 0 .32.22.7.83.58A12 12 0 0 0 12 .5z"/></svg>
-      </a>
-      <a href="https://x.com/codingo_" aria-label="X" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" width="22" height="22" role="img"><path fill="currentColor" d="M18.244 2H21l-6.48 7.4L22 22h-6.766l-4.6-6.17L4.5 22H2l7.02-8.01L2 2h6.85l4.2 5.7L18.244 2Zm-2.376 18h1.77L7.2 4H5.36l10.508 16Z"/></svg>
-      </a>
-      <a href="https://www.linkedin.com/in/michaelskelton" aria-label="LinkedIn" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" width="22" height="22" role="img"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 1 1-.02 5 2.5 2.5 0 0 1 .02-5zM3 8.98h4v12H3v-12zM9 8.98h3.83v1.64h.06c.53-.96 1.84-1.98 3.78-1.98 4.04 0 4.78 2.66 4.78 6.12v6.22h-4v-5.51c0-1.32-.03-3.02-1.84-3.02-1.85 0-2.13 1.44-2.13 2.93v5.6H9v-12z"/></svg>
-      </a>
-    </nav>
   </header>
 
-  <main class="wrap grid">
+  <main class="wrap column">
+    <!-- Picker card -->
     <section class="picker card">
       <h2>Add a timezone</h2>
       <input id="tzSearch" class="input" placeholder="Add city/zone (e.g., Brisbane, San Francisco, PT, America/Los_Angeles)" />
@@ -39,17 +28,27 @@
         <button id="addBtn" class="btn primary">Add</button>
         <button id="removeAllBtn" class="btn ghost">Remove all</button>
       </div>
-      <p class="tiny muted">Tip: click any row’s date to change the meeting time in that timezone – all others update instantly.</p>
+      <p class="tiny muted">Tip: click any row’s date or time to edit in that timezone – all others update instantly.</p>
+
+      <!-- Prominent socials like homepage -->
+      <div class="social-block">
+        <a class="social-btn" href="https://www.linkedin.com/in/skeltonm/" target="_blank" rel="noopener">LinkedIn</a>
+        <a class="social-btn" href="https://x.com/codingo_" target="_blank" rel="noopener">X (Twitter)</a>
+        <a class="social-btn" href="https://github.com/codingo/" target="_blank" rel="noopener">GitHub</a>
+        <a class="social-btn" href="https://youtube.com/codingo" target="_blank" rel="noopener">YouTube</a>
+      </div>
     </section>
 
+    <!-- List -->
     <section class="list">
+      <h3 class="section-title">Selected timezones</h3>
       <ul id="list" class="zones"></ul>
     </section>
   </main>
 
   <footer class="wrap tiny footer">
-    <span>🙂 between 08:00–16:00 local on weekdays • ☹ otherwise</span>
-    <span class="muted">• Shareable links via URL params</span>
+    <span class="emph">Rows are coloured by local business hours (green = good, red = not ideal)</span>
+    <span class="emph">Shareable links by copying the current URL</span>
   </footer>
 
   <script src="aliases.js"></script>
