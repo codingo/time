@@ -2,9 +2,11 @@
 * { box-sizing: border-box; }
 html, body { margin:0; padding:0; background:var(--bg); color:var(--text); font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji"; }
 .wrap { max-width:860px; margin:0 auto; padding:18px; }
-header { display:flex; align-items:center; justify-content:space-between; }
+header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
 h1 { margin:0; font-size:24px; }
-.controls { display:flex; gap:8px; align-items:center; }
+.controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.tiny { font-size:12px; }
+.muted { color:var(--muted); }
 .input, input[type="datetime-local"] { background:#0b0d12; border:1px solid #25293a; color:var(--text); padding:10px 12px; border-radius:10px; width:100%; }
 button { border:1px solid #25293a; background:#10131b; color:var(--text); padding:10px 12px; border-radius:10px; cursor:pointer; }
 button.primary { border-color:transparent; background:var(--accent); color:#061120; font-weight:600; }
@@ -23,4 +25,4 @@ main { display:grid; grid-template-columns: 1fr; gap:16px; }
 .zone .sub { color:var(--muted); font-size:12px; }
 .zone .time { font-size:20px; font-variant-numeric: tabular-nums; }
 .zone .kill { background:#20131a; border:1px solid #3a2026; color:var(--danger); border-radius:10px; }
-footer.tiny { color:var(--muted); font-size:12px; }
+footer.tiny { color:var
