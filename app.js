@@ -1,4 +1,7 @@
-import { toTimeZone, formatLocalInput, isBusinessHours, normalize, tokensOrderedMatch, isValidDateTimeLocal } from "./utils.js";
+import {
+  toTimeZone, formatLocalInput, isBusinessHours,
+  normalize, tokensOrderedMatch, isValidDateTimeLocal
+} from "./utils.js";
 
 // Defaults: Gold Coast (Brisbane), San Francisco (LA), New Hampshire (NY)
 const DEFAULT_ZONES = ["Australia/Brisbane", "America/Los_Angeles", "America/New_York"];
@@ -11,46 +14,67 @@ const addBtn = document.getElementById("add-zone");
 let zones = [];           // [{ row, label, datetime, removeBtn, zoneName, displayLabel }]
 let tzData = [];          // loaded from timezones.json
 let tzIndex = null;       // lookup maps
-let sharedInstant = null; // the one true UTC instant
+let sharedInstant = null; // single UTC instant for the whole view
 
-// --- boot
-const params = new URLSearchParams(location.search);
-const startupZones = (params.get("zones")?.split(",").filter(Boolean)) || DEFAULT_ZONES;
-sharedInstant = params.get("time") ? parseWallAsInstant(params.get("time"), startupZones[0]) : new Date();
+// Boot inside an async IIFE (avoids top-level await issues on older browsers)
+(async function init(){
+  await loadTimezoneData();
 
-await loadTimezoneData();
-startupZones.forEach(z => addZone(z, sharedInstant));
-paintAll();
+  // Read query params robustly
+  const params = new URLSearchParams(location.search);
+  const zonesParam = params.get("zones");
+  const timeParam  = params.get("time");
 
-addBtn.addEventListener("click", () => {
-  const zone = resolveToZone(inputEl.value) || inputEl.value.trim();
-  if (!zone) return;
-  if (zones.some(z => z.zoneName === zone)) { inputEl.value = ""; return; }
-  addZone(zone, sharedInstant);
-  inputEl.value = "";
-  updateURL();
-});
+  const startupZones = (zonesParam && zonesParam.split(",").filter(Boolean)) || DEFAULT_ZONES.slice();
+  // If time is an ISO with Z, use it; otherwise treat as wall time in the first zone
+  sharedInstant = timeParam
+    ? (timeParam.endsWith("Z") ? new Date(timeParam) : parseWallAsInstant(timeParam, startupZones[0]))
+    : new Date();
 
-// live suggestions via datalist
-inputEl.addEventListener("input", () => {
-  const q = inputEl.value.trim();
+  // Build UI
+  startupZones.forEach(z => addZone(z, sharedInstant));
+  paintAll();
+
+  // Pre-populate suggestions on focus
+  inputEl.addEventListener("focus", () => {
+    renderSuggestions(suggest("", 25)); // top items when empty
+  });
+
+  // Live suggestions
+  inputEl.addEventListener("input", () => {
+    renderSuggestions(suggest(inputEl.value.trim(), 50));
+  });
+
+  // Add btn
+  addBtn.addEventListener("click", () => {
+    const zone = resolveToZone(inputEl.value) || inputEl.value.trim();
+    if (!zone) return;
+    if (zones.some(z => z.zoneName === zone)) { inputEl.value = ""; return; }
+    addZone(zone, sharedInstant);
+    inputEl.value = "";
+    updateURL();
+  });
+})();
+
+// ----- suggestions (datalist) -----
+function renderSuggestions(list){
   datalistEl.innerHTML = "";
-  for (const opt of suggest(q, 50)) {
+  list.forEach(opt => {
     const o = document.createElement("option");
-    o.value = opt.label;                 // what appears in the input dropdown
+    o.value = opt.label;
     o.label = `${opt.label} — ${opt.zone}`;
     datalistEl.appendChild(o);
-  }
-});
+  });
+}
 
-// --- data loading & indexing
+// ----- data loading & index -----
 async function loadTimezoneData(){
   try{
     const res = await fetch("timezones.json", {cache: "no-store"});
     if (!res.ok) throw new Error("fetch failed");
     tzData = await res.json();
   }catch{
-    // Minimal fallback if file missing
+    // Minimal fallback keeps app usable if file is missing
     tzData = [
       { label:"Gold Coast", zone:"Australia/Brisbane", aliases:["Brisbane","QLD","Sunshine Coast","AEST (no DST)"] },
       { label:"Sydney", zone:"Australia/Sydney", aliases:["NSW","AEDT","AEST","Canberra","New South Wales"] },
@@ -64,12 +88,10 @@ async function loadTimezoneData(){
 }
 
 function buildIndex(){
-  // Note: multiple labels can share the same zone (e.g., Sydney/Canberra).
-  // We DO NOT use byZone for display anymore; we keep a per-row displayLabel.
   tzIndex = { byLabel:new Map(), byAlias:new Map(), byZone:new Map() };
   for (const rec of tzData){
     tzIndex.byLabel.set(normalize(rec.label), rec);
-    tzIndex.byZone.set(rec.zone, rec); // used for suggestion context only
+    tzIndex.byZone.set(rec.zone, rec);
     (rec.aliases||[]).forEach(a => tzIndex.byAlias.set(normalize(a), rec));
   }
 }
@@ -96,7 +118,8 @@ function resolveToZone(input){
 }
 
 function suggest(q, limit=50){
-  if (!q) return [];
+  // Empty query: return a curated top list
+  if (!q) return tzData.slice(0, limit);
   const n = normalize(q), tokens = n.split(" ");
   return tzData
     .map(rec => {
@@ -113,7 +136,7 @@ function suggest(q, limit=50){
     .map(x => x.rec);
 }
 
-// --- add / events
+// ----- rows -----
 function addZone(zoneName, instant) {
   if (zones.some(z => z.zoneName === zoneName)) return;
 
@@ -124,7 +147,6 @@ function addZone(zoneName, instant) {
   label.className = "zone-label";
   label.placeholder = "Add a timezone (e.g., Gold Coast, San Fr, America/Los_Angeles)";
 
-  // Preserve the label the user intended (don’t default to some other city sharing the same zone)
   const recForZone = tzIndex.byZone.get(zoneName);
   const displayLabel = recForZone ? recForZone.label : zoneName;
   label.value = displayLabel;
@@ -146,40 +168,32 @@ function addZone(zoneName, instant) {
   const record = { row, label, datetime, removeBtn, zoneName, displayLabel };
   zones.push(record);
 
-  // Zone name changed (user typed a label/alias/IANA)
+  // Zone change
   label.addEventListener("change", () => {
     const typed = label.value.trim();
     const resolvedZone = resolveToZone(typed) || typed;
     record.zoneName = resolvedZone;
 
-    // Update display label: if the typed label is in our DB, keep that label; else keep what they typed
     const dbRec = tzIndex.byLabel.get(normalize(typed)) || tzIndex.byAlias.get(normalize(typed));
     record.displayLabel = dbRec ? dbRec.label : typed;
     label.value = record.displayLabel;
 
-    // Repaint this row from sharedInstant in the new zone
     paintRow(record, sharedInstant);
     updateURL();
   });
 
-  // Datetime edited -> recompute sharedInstant and repaint all
-  // Only act when the value is a valid datetime-local string to avoid “mid-typing” glitches
-  datetime.addEventListener("input", () => {
-    const v = datetime.value;
-    if (!isValidDateTimeLocal(v)) return; // wait until valid
-    sharedInstant = parseWallAsInstant(v, record.zoneName);
-    paintAll();
-    updateURL();
-  });
-  datetime.addEventListener("change", () => {
+  // Time change → recompute shared instant, repaint all
+  const onTimeEdit = () => {
     const v = datetime.value;
     if (!isValidDateTimeLocal(v)) return;
     sharedInstant = parseWallAsInstant(v, record.zoneName);
     paintAll();
     updateURL();
-  });
+  };
+  datetime.addEventListener("input", onTimeEdit);
+  datetime.addEventListener("change", onTimeEdit);
 
-  // Remove this row
+  // Remove
   removeBtn.addEventListener("click", () => {
     row.remove();
     zones = zones.filter(z => z !== record);
@@ -187,7 +201,7 @@ function addZone(zoneName, instant) {
     updateURL();
   });
 
-  // Initial paint for this row
+  // Initial paint
   paintRow(record, instant);
 }
 
@@ -205,14 +219,17 @@ function paintAll(){
 
 function updateURL() {
   const p = new URLSearchParams();
-  if (zones[0]) p.set("time", zones[0].datetime.value); // readable wall time from first row
+  if (zones[0]) {
+    // store both: human-readable wall time + canonical UTC to be robust
+    p.set("time", zones[0].datetime.value);
+  }
   p.set("zones", zones.map(z => z.zoneName).join(","));
   history.replaceState(null, "", `?${p.toString()}`);
 }
 
-// --- parsing helpers
+// ----- parsing helpers -----
 function parseWallAsInstant(inputValue, zone){
-  // input "yyyy-MM-ddTHH:mm" interpreted as wall time in 'zone' -> UTC instant
+  // input "yyyy-MM-ddTHH:mm" as wall time in 'zone' -> UTC instant
   const [datePart, timePart] = inputValue.split("T");
   const [y, m, d] = datePart.split("-").map(Number);
   const [H, Min] = timePart.split(":").map(Number);
