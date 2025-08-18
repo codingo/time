@@ -41,6 +41,5 @@ export function tokensOrderedMatch(qTokens, hay){
 
 // Validation for datetime-local during typing
 export function isValidDateTimeLocal(v){
-  // yyyy-MM-ddTHH:mm
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v);
 }
