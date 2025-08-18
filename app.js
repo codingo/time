@@ -1,4 +1,4 @@
-import { toTimeZone, formatLocalInput, isBusinessHours, normalize, tokensOrderedMatch } from "./utils.js";
+import { toTimeZone, formatLocalInput, isBusinessHours, normalize, tokensOrderedMatch, isValidDateTimeLocal } from "./utils.js";
 
 // Defaults: Gold Coast (Brisbane), San Francisco (LA), New Hampshire (NY)
 const DEFAULT_ZONES = ["Australia/Brisbane", "America/Los_Angeles", "America/New_York"];
@@ -8,7 +8,7 @@ const inputEl = document.getElementById("zone-input");
 const datalistEl = document.getElementById("tzlist");
 const addBtn = document.getElementById("add-zone");
 
-let zones = [];           // [{ row, label, datetime, zoneName }]
+let zones = [];           // [{ row, label, datetime, removeBtn, zoneName, displayLabel }]
 let tzData = [];          // loaded from timezones.json
 let tzIndex = null;       // lookup maps
 let sharedInstant = null; // the one true UTC instant
@@ -37,7 +37,7 @@ inputEl.addEventListener("input", () => {
   datalistEl.innerHTML = "";
   for (const opt of suggest(q, 50)) {
     const o = document.createElement("option");
-    o.value = opt.label;
+    o.value = opt.label;                 // what appears in the input dropdown
     o.label = `${opt.label} — ${opt.zone}`;
     datalistEl.appendChild(o);
   }
@@ -53,6 +53,7 @@ async function loadTimezoneData(){
     // Minimal fallback if file missing
     tzData = [
       { label:"Gold Coast", zone:"Australia/Brisbane", aliases:["Brisbane","QLD","Sunshine Coast","AEST (no DST)"] },
+      { label:"Sydney", zone:"Australia/Sydney", aliases:["NSW","AEDT","AEST","Canberra","New South Wales"] },
       { label:"San Francisco", zone:"America/Los_Angeles", aliases:["SF","Bay Area","Silicon Valley","PT","PST","PDT","San Fran","San Fr"] },
       { label:"New Hampshire", zone:"America/New_York", aliases:["NH","Eastern Time","ET","EST","EDT"] },
       { label:"London", zone:"Europe/London", aliases:["UK","GB","GMT","BST"] },
@@ -63,10 +64,12 @@ async function loadTimezoneData(){
 }
 
 function buildIndex(){
+  // Note: multiple labels can share the same zone (e.g., Sydney/Canberra).
+  // We DO NOT use byZone for display anymore; we keep a per-row displayLabel.
   tzIndex = { byLabel:new Map(), byAlias:new Map(), byZone:new Map() };
   for (const rec of tzData){
     tzIndex.byLabel.set(normalize(rec.label), rec);
-    tzIndex.byZone.set(rec.zone, rec);
+    tzIndex.byZone.set(rec.zone, rec); // used for suggestion context only
     (rec.aliases||[]).forEach(a => tzIndex.byAlias.set(normalize(a), rec));
   }
 }
@@ -120,39 +123,75 @@ function addZone(zoneName, instant) {
   const label = document.createElement("input");
   label.className = "zone-label";
   label.placeholder = "Add a timezone (e.g., Gold Coast, San Fr, America/Los_Angeles)";
-  const rec = tzIndex.byZone.get(zoneName);
-  label.value = rec ? rec.label : zoneName;
+
+  // Preserve the label the user intended (don’t default to some other city sharing the same zone)
+  const recForZone = tzIndex.byZone.get(zoneName);
+  const displayLabel = recForZone ? recForZone.label : zoneName;
+  label.value = displayLabel;
 
   const datetime = document.createElement("input");
   datetime.type = "datetime-local";
   datetime.className = "datetime";
 
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove";
+  removeBtn.setAttribute("aria-label", "Remove timezone");
+  removeBtn.textContent = "×";
+
   row.appendChild(label);
   row.appendChild(datetime);
+  row.appendChild(removeBtn);
   zoneContainer.appendChild(row);
 
-  const record = { row, label, datetime, zoneName };
+  const record = { row, label, datetime, removeBtn, zoneName, displayLabel };
   zones.push(record);
 
   // Zone name changed (user typed a label/alias/IANA)
   label.addEventListener("change", () => {
-    const resolved = resolveToZone(label.value) || label.value.trim();
-    record.zoneName = resolved;
+    const typed = label.value.trim();
+    const resolvedZone = resolveToZone(typed) || typed;
+    record.zoneName = resolvedZone;
+
+    // Update display label: if the typed label is in our DB, keep that label; else keep what they typed
+    const dbRec = tzIndex.byLabel.get(normalize(typed)) || tzIndex.byAlias.get(normalize(typed));
+    record.displayLabel = dbRec ? dbRec.label : typed;
+    label.value = record.displayLabel;
+
     // Repaint this row from sharedInstant in the new zone
     paintRow(record, sharedInstant);
     updateURL();
   });
 
   // Datetime edited -> recompute sharedInstant and repaint all
+  // Only act when the value is a valid datetime-local string to avoid “mid-typing” glitches
   datetime.addEventListener("input", () => {
-    sharedInstant = parseWallAsInstant(datetime.value, record.zoneName);
+    const v = datetime.value;
+    if (!isValidDateTimeLocal(v)) return; // wait until valid
+    sharedInstant = parseWallAsInstant(v, record.zoneName);
     paintAll();
     updateURL();
   });
+  datetime.addEventListener("change", () => {
+    const v = datetime.value;
+    if (!isValidDateTimeLocal(v)) return;
+    sharedInstant = parseWallAsInstant(v, record.zoneName);
+    paintAll();
+    updateURL();
+  });
+
+  // Remove this row
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    zones = zones.filter(z => z !== record);
+    paintAll();
+    updateURL();
+  });
+
+  // Initial paint for this row
+  paintRow(record, instant);
 }
 
 function paintRow(rec, instant){
-  // Update the input display for this zone from sharedInstant, and colour
   const local = toTimeZone(instant, rec.zoneName);
   rec.datetime.value = formatLocalInput(local, rec.zoneName);
   const ok = isBusinessHours(instant, rec.zoneName);
@@ -166,8 +205,7 @@ function paintAll(){
 
 function updateURL() {
   const p = new URLSearchParams();
-  // Persist as the first row's wall time for readability
-  if (zones[0]) p.set("time", zones[0].datetime.value);
+  if (zones[0]) p.set("time", zones[0].datetime.value); // readable wall time from first row
   p.set("zones", zones.map(z => z.zoneName).join(","));
   history.replaceState(null, "", `?${p.toString()}`);
 }
