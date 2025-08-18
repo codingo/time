@@ -1,51 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Time • codingo</title>
-  <link rel="stylesheet" href="styles.css" />
-  <meta name="color-scheme" content="dark">
+  <meta charset="UTF-8">
+  <title>Time Converter - codingo</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="bg-anim"></div>
-
-  <header class="wrap header">
-    <a class="brand" href="https://codingo.com" target="_blank" rel="noopener">
-      <img src="assets/codingo-logo-animated.svg" alt="codingo" class="logo">
-      <span class="brand-text">codingo</span>
-    </a>
+  <header class="site-header">
+    <video autoplay loop muted playsinline class="logo-video">
+      <source src="codingo-logo.webm" type="video/webm">
+      <img src="fallback-logo.png" alt="Codingo Logo">
+    </video>
+    <h1>Time Converter</h1>
   </header>
 
-  <main class="wrap column">
-    <section class="picker card">
-      <h2>Add a timezone</h2>
-      <input id="tzSearch" class="input" placeholder="Add city/zone (e.g., Brisbane, San Francisco, PT, America/Los_Angeles)" />
-      <ul id="results" class="menu"></ul>
-      <div class="row gap">
-        <button id="addBtn" class="btn primary">Add</button>
-        <button id="removeAllBtn" class="btn ghost">Remove all</button>
-      </div>
-      <p class="tiny muted">Tip: click any row’s date or time to edit in that timezone – all others update instantly.</p>
-    </section>
-
-    <section class="list">
-      <h3 class="section-title">Selected timezones</h3>
-      <ul id="list" class="zones"></ul>
-    </section>
+  <main>
+    <div class="controls">
+      <button id="add-zone">+ Add a Timezone</button>
+      <p class="shareable">Shareable links by copying the current URL</p>
+    </div>
+    <div id="zones"></div>
   </main>
 
-  <footer class="wrap footer">
-    <div class="share emph">Shareable links <span class="muted">by copying the current URL</span></div>
-    <div class="social-block">
-      <a class="social-btn" href="https://www.linkedin.com/in/skeltonm/" target="_blank" rel="noopener">LinkedIn</a>
-      <a class="social-btn" href="https://x.com/codingo_" target="_blank" rel="noopener">X (Twitter)</a>
-      <a class="social-btn" href="https://github.com/codingo/" target="_blank" rel="noopener">GitHub</a>
-      <a class="social-btn" href="https://youtube.com/codingo" target="_blank" rel="noopener">YouTube</a>
+  <footer>
+    <div class="socials">
+      <a href="https://www.linkedin.com/in/skeltonm/" target="_blank">LinkedIn</a> •
+      <a href="https://x.com/codingo_" target="_blank">Twitter</a> •
+      <a href="https://github.com/codingo/" target="_blank">GitHub</a> •
+      <a href="https://youtube.com/codingo" target="_blank">YouTube</a>
     </div>
   </footer>
 
-  <script src="aliases.js"></script>
-  <script type="module" src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
