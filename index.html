@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Time Converter — codingo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Make sure this filename matches exactly: style.css (not styles.css) -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -18,9 +17,15 @@
 
   <main>
     <div class="controls">
-      <button id="add-zone">+ Add a Timezone</button>
+      <div class="add-wrap">
+        <input id="zone-input" list="tzlist" class="zone-input"
+               placeholder="Add a timezone: e.g., Gold Coast, San Fr, London, Tokyo, PT…" />
+        <datalist id="tzlist"></datalist>
+        <button id="add-zone" title="Add selected timezone">+ Add timezone</button>
+      </div>
       <p class="shareable">Shareable links by copying the current URL</p>
     </div>
+
     <div id="zones"></div>
   </main>
 
@@ -33,7 +38,7 @@
     </div>
   </footer>
 
-  <!-- IMPORTANT: use ES modules so app.js can import utils.js -->
+  <!-- ES modules -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
