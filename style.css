@@ -1,47 +1,45 @@
 :root{
-  --ok:rgba(34,197,94,.30);
-  --bad:rgba(239,68,68,.30);
+  --ok:rgba(34,197,94,.28);
+  --bad:rgba(239,68,68,.28);
+  --mid:rgba(234,179,8,.28);
   --icon:#e6f3ff; --icon-hover:#9bd1ff;
 }
 
-/* page base */
+/* base */
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
-  color:#f1f5f9; text-align:center;
-  min-height:100svh; position:relative; background:#0b1324; /* deep fallback */
+  color:#f1f5f9; text-align:center; min-height:100svh; position:relative; background:#0b1324;
 }
 
 /* --- Trianglify background (two canvases that cross-fade) --- */
 .tri-layer{
   position:fixed; inset:0; z-index:-1;
-  width:100vw; height:100vh;
-  display:block;
+  width:100vw; height:100vh; display:block;
   opacity:0; transition:opacity 2.2s ease, transform 20s ease-in-out;
-  transform: scale(1.02); /* gentle drift */
+  transform: scale(1.02);
 }
 .tri-layer.active{ opacity:1; }
-/* subtle parallax drift (alternates when we swap layers) */
-.tri-layer.drift-a{ transform: translate3d(-1.2%, -0.8%, 0) scale(1.04); }
-.tri-layer.drift-b{ transform: translate3d( 1.2%,  0.8%, 0) scale(1.04); }
+.tri-layer.drift-a{ transform: translate3d(-1.2%, -0.8%, 0) scale(1.04) }
+.tri-layer.drift-b{ transform: translate3d( 1.2%,  0.8%, 0) scale(1.04) }
 
-/* Header */
+/* header */
 .site-header{padding:1rem 1rem 0}
 .logo-link{display:inline-block; line-height:0}
 .logo-video{width:180px;display:block;margin:0 auto 1rem;border-radius:12px}
 
-/* Main */
-main{max-width:860px;margin:0 auto;padding:1rem}
-.controls{margin-bottom:1.25rem}
+/* main controls */
+main{max-width:980px;margin:0 auto;padding:1rem}
+.controls{margin-bottom:1rem}
 .add-wrap{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
 .zone-input{
-  width:min(520px,90vw);
+  width:min(580px,92vw);
   background:#0b1220;border:1px solid #22304a;color:#e2e8f0;
   padding:.6rem .7rem;border-radius:10px;font-size:1rem
 }
 
-/* codingo-style primary button */
+/* codingo primary & ghost */
 .btn-codingo{
   position: relative; display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
   background:#12181f; color:#f1f5f9;
@@ -49,54 +47,70 @@ main{max-width:860px;margin:0 auto;padding:1rem}
   padding:.70rem 1.1rem; font-weight:800; letter-spacing:.2px; cursor:pointer;
   transition: transform .08s ease, box-shadow .15s ease, border-color .2s ease, background .2s ease;
 }
-.btn-codingo::before{
-  content:""; position:absolute; left:0; top:6%; bottom:6%; width:2px; border-radius:2px;
-  background:linear-gradient(#ffffff, rgba(255,255,255,.65)); opacity:.95;
+.btn-codingo::before{content:"";position:absolute;left:0;top:6%;bottom:6%;width:2px;border-radius:2px;background:linear-gradient(#ffffff, rgba(255,255,255,.65));opacity:.95}
+.btn-codingo::after{content:"";position:absolute;left:8px;right:8px;bottom:2px;height:3px;border-radius:2px;background:linear-gradient(90deg, #22d3ee, #34d399);opacity:.9}
+.btn-codingo:hover{background:#0f151c;border-color:rgba(255,255,255,.14);transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.28)}
+.btn-codingo:active{transform:translateY(0);box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.btn-codingo:focus-visible{outline:2px solid #38bdf8;outline-offset:2px}
+.btn-ghost{
+  background:transparent;color:#e2e8f0;border:1px solid rgba(255,255,255,.18);
+  border-radius:8px;padding:.6rem .9rem;font-weight:700;cursor:pointer
 }
-.btn-codingo::after{
-  content:""; position:absolute; left:8px; right:8px; bottom:2px; height:3px; border-radius:2px;
-  background:linear-gradient(90deg, #22d3ee, #34d399); opacity:.9;
+.btn-ghost:hover{background:rgba(255,255,255,.05)}
+
+/* sort */
+.sort-wrap{display:flex;gap:8px;justify-content:center;align-items:center;margin:.6rem 0}
+.sort-wrap select{
+  background:#0b1220;border:1px solid #22304a;color:#e2e8f0;padding:.45rem .6rem;border-radius:8px
 }
-.btn-codingo:hover{ background:#0f151c; border-color:rgba(255,255,255,.14); transform:translateY(-1px); box-shadow:0 4px 18px rgba(0,0,0,.28) }
-.btn-codingo:active{ transform:translateY(0); box-shadow:0 2px 8px rgba(0,0,0,.22) }
-.btn-codingo:focus-visible{ outline:2px solid #38bdf8; outline-offset:2px }
-.btn-codingo[disabled]{ opacity:.55; cursor:not-allowed }
 
-.shareable{opacity:.9;margin:.6rem 0 0}
-#zones{margin-top:12px}
-
-/* Zone rows */
+/* rows */
+#zones{margin-top:10px}
 .zone-row{
-  display:grid; grid-template-columns: 1fr auto auto; gap:10px;
-  align-items:center; justify-content:space-between;
-  background:#1e293b; padding:.75rem 1rem; border-radius:12px; margin-bottom:8px;
-  transition:background-color .2s ease;
+  display:grid; grid-template-columns: 24px 1fr auto auto 32px; gap:10px; align-items:center;
+  background:#111827cc; backdrop-filter: blur(2px);
+  padding:.75rem 1rem; border-radius:12px; margin-bottom:10px; border:1px solid rgba(255,255,255,.07);
 }
-.zone-row.good{background:var(--ok)}
-.zone-row.bad{background:var(--bad)}
-.zone-label{
-  min-width:220px; text-align:left;
-  background:#0b1220;border:1px solid #22304a;color:#e2e8f0;
-  padding:.5rem .6rem; border-radius:10px;
+.dragdot{opacity:.6}
+.flag{font-size:20px}
+.city{
+  text-align:left; font-size:1.05rem; font-weight:800; color:#e6f0ff; text-decoration:underline; cursor:pointer;
 }
-.datetime{
-  background:#0b1220;border:1px solid #22304a;color:#e2e8f0;
-  padding:.5rem .6rem; border-radius:10px;
+.meta{display:block; font-size:.85rem; opacity:.8; text-align:left}
+.time-box{
+  font-size:1.6rem; font-weight:800; padding:.25rem .5rem; border-radius:8px; border:1px solid rgba(255,255,255,.15);
+  background:#0b1220; color:#e2e8f0;
 }
-
-/* Delete button */
+.face{font-size:1.6rem}
 .remove{
-  appearance:none; -webkit-appearance:none;
-  width:34px; height:34px; line-height:32px; text-align:center;
-  border-radius:10px; border:1px solid #3b4154;
-  background:#0b1220; color:#e2e8f0; cursor:pointer; font-size:18px; font-weight:700;
+  appearance:none; -webkit-appearance:none; width:34px; height:34px; line-height:32px; text-align:center;
+  border-radius:10px; border:1px solid #3b4154; background:#0b1220; color:#e2e8f0; cursor:pointer; font-size:18px; font-weight:700;
 }
-.remove:hover{ background:#121a2a }
+.remove:hover{background:#121a2a}
 
-/* Footer social icons (large, no box) */
-footer{margin:28px 0 36px}
-.socials-icons{ display:flex; gap:28px; align-items:center; justify-content:center; padding:12px 0 }
-.icon{ display:inline-flex; width:96px; height:96px; background:none; border:none; align-items:center; justify-content:center; transition:transform .12s ease }
-.icon:hover{ transform:translateY(-2px) }
-.icon svg{ width:72px; height:72px; fill:var(--icon); opacity:.95 }
-.icon:hover svg{ fill:var(--icon-hover) }
+/* color bands (applied on row via JS) */
+.zone-row.good{ box-shadow: inset 0 -3px 0 #22c55e99 }
+.zone-row.neutral{ box-shadow: inset 0 -3px 0 #eab30899 }
+.zone-row.bad{ box-shadow: inset 0 -3px 0 #ef444499 }
+
+/* permalink */
+.permalink{margin:18px 0 6px}
+.permalink-row{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+#permalink-mode, #permalink-url{
+  background:#0b1220;border:1px solid #22304a;color:#e2e8f0;padding:.6rem .7rem;border-radius:10px
+}
+#permalink-url{min-width:min(640px,92vw)}
+
+/* modal */
+dialog#edit-dialog{border:none;border-radius:12px;padding:0;background:#0b1220;color:#f1f5f9;box-shadow:0 25px 80px rgba(0,0,0,.5)}
+.edit-card{padding:0}
+.edit-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.9rem 1.1rem;background:#1f2a3a;border-top-left-radius:12px;border-top-right-radius:12px;border-bottom:1px solid rgba(255,255,255,.08)
+}
+.edit-city{font-weight:900;font-size:1.1rem}
+.edit-row{display:flex;align-items:center;gap:10px;padding:1rem 1.1rem}
+.edit-row label{width:80px;text-align:right;opacity:.9}
+.edit-row input{background:#0b1220;border:1px solid #22304a;color:#e2e8f0;border-radius:8px;padding:.5rem .6rem}
+.edit-actions{display:flex;justify-content:flex-end;gap:8px;padding:1rem 1.1rem;border-top:1px solid rgba(255,255,255,.08)}
+.sr-only{position:absolute;left:-9999px}
