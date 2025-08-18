@@ -17,25 +17,37 @@ const items = allTz.map(zone => ({
   region: zone.split("/")[0],
 }));
 
-// ---------- Alias-backed instant search ----------
+// ---------- Alias-backed instant search (token-ordered fuzzy) ----------
 const ALIAS = (window.ALIASES) || {};
-function search(q, limit = 12) {
+
+const norm = (s) =>
+  s.toLowerCase().replace(/[_/,-]/g, " ").replace(/\s+/g, " ").trim();
+
+const esc = (s) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+function search(q, limit = 30) {
   if (!q) return [];
-  q = q.toLowerCase().trim();
+  const qn = norm(q);
+  const qTokens = qn.split(" ");
 
-  const score = (it) => {
-    const hay = [
-      it.city,
-      it.zone,
-      it.region,
-      ...(ALIAS[it.zone] || [])
-    ].join(" ").toLowerCase();
+  function score(it) {
+    const hay = norm(
+      [it.city, it.zone, it.region, ...(ALIAS[it.zone] || [])].join(" ")
+    );
 
-    if (hay.startsWith(q)) return 0;
-    if (hay.includes(q)) return 1;
-    const tokenHit = hay.split(/[/\s,_-]+/).some(t => t.startsWith(q));
-    return tokenHit ? 2 : 999;
-  };
+    // 1) exact prefix of the whole string
+    if (hay.startsWith(qn)) return 0;
+
+    // 2) tokens appear in order (e.g., "san fr" -> "san ... francisco")
+    const orderedRe = new RegExp(qTokens.map(esc).join(".*"));
+    if (orderedRe.test(hay)) return 0.2;
+
+    // 3) all tokens present (unordered)
+    const allTokens = qTokens.every(t => hay.includes(t));
+    if (allTokens) return 0.5;
+
+    return 999;
+  }
 
   return items
     .map(it => ({ it, s: score(it) }))
@@ -48,6 +60,7 @@ function search(q, limit = 12) {
 // ---------- Picker UI ----------
 const searchEl = $("tzSearch");
 const resultsEl = $("results");
+
 searchEl.addEventListener("input", () => {
   const hits = search(searchEl.value);
   resultsEl.innerHTML = "";
@@ -60,10 +73,12 @@ searchEl.addEventListener("input", () => {
     resultsEl.appendChild(li);
   }
 });
+
 $("addBtn").onclick = () => {
   const hit = search(searchEl.value, 1)[0];
   if (hit) addZone(hit.zone);
 };
+
 $("removeAllBtn").onclick = () => { zones = []; render(); syncQuery(); };
 
 function addZone(zone) {
@@ -72,13 +87,49 @@ function addZone(zone) {
   resultsEl.innerHTML = "";
   render(); syncQuery();
 }
+
 function removeZone(zone) {
   zones = zones.filter(z => z !== zone);
   render(); syncQuery();
 }
 
-// ---------- Render list (each row editable & coloured) ----------
+// ---------- Render list (per-row editable & coloured) ----------
 const listEl = $("list");
+
+// Use **event delegation** so handlers always act on the correct row,
+// avoiding closure bugs that can target the last item.
+listEl.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.matches("input.row-when")) {
+    const tz = t.dataset.tz;
+    when = fromInputForZone(t.value, tz); // set new shared instant
+    render();
+    syncQuery();
+  }
+});
+
+listEl.addEventListener("click", (e) => {
+  const t = e.target;
+
+  // Click on the formatted time opens that row's picker
+  if (t.closest(".time")) {
+    const row = t.closest(".zone-row");
+    const picker = row?.querySelector("input.row-when");
+    if (picker) {
+      if (picker.showPicker) picker.showPicker();
+      else picker.focus();
+    }
+    return;
+  }
+
+  // Remove button
+  if (t.closest(".kill")) {
+    const btn = t.closest(".kill");
+    const tz = btn?.dataset.tz;
+    if (tz) removeZone(tz);
+  }
+});
+
 function render() {
   listEl.innerHTML = "";
   for (const z of zones) {
@@ -86,6 +137,7 @@ function render() {
 
     const li = document.createElement("li");
     li.className = `zone card ${good ? "ok" : "bad"}`;
+    li.dataset.tz = z;
 
     const city = displayCity(z);
 
@@ -96,29 +148,24 @@ function render() {
       <div class="sub">${z} • ${offsetStr(z)}</div>
     `;
 
+    // formatted time (click to open picker)
+    const timeTxt = document.createElement("div");
+    timeTxt.className = "time linklike";
+    timeTxt.textContent = formatAt(when, z);
+    timeTxt.title = "Click to edit time";
+
     // datetime-local showing wall-time in this zone
     const dt = document.createElement("input");
     dt.type = "datetime-local";
     dt.className = "row-when";
     dt.value = toInputForZone(when, z);
-    dt.addEventListener("input", (e) => {
-      when = fromInputForZone(e.target.value, z); // new shared instant
-      render();
-      syncQuery();
-    });
-
-    // Clickable time text mirrors dt (click focuses picker)
-    const timeTxt = document.createElement("div");
-    timeTxt.className = "time linklike";
-    timeTxt.textContent = formatAt(when, z);
-    timeTxt.title = "Click to edit time";
-    timeTxt.addEventListener("click", () => dt.showPicker ? dt.showPicker() : dt.focus());
+    dt.dataset.tz = z; // critical for delegation
 
     const kill = document.createElement("button");
     kill.className = "kill btn tiny";
     kill.title = "Remove";
     kill.textContent = "×";
-    kill.onclick = () => removeZone(z);
+    kill.dataset.tz = z; // for delegated removal
 
     const row = document.createElement("div");
     row.className = "zone-row";
@@ -155,6 +202,7 @@ function toInputForZone(dUTC, tz) {
 }
 
 function fromInputForZone(inputValue, tz) {
+  // Parse yyyy-MM-ddTHH:mm as wall time in tz -> UTC instant
   const [datePart, timePart] = inputValue.split("T");
   const [y, m, d] = datePart.split("-").map(Number);
   const [H, Min] = timePart.split(":").map(Number);
