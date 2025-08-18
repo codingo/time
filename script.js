@@ -1,4 +1,4 @@
-// Timezone support
+// Default zones: Gold Coast (Brisbane), San Francisco (LA), New Hampshire (New York)
 const DEFAULT_ZONES = ["Australia/Brisbane", "America/Los_Angeles", "America/New_York"];
 const zoneContainer = document.getElementById("zones");
 let zones = [];
@@ -9,7 +9,7 @@ window.onload = () => {
   const paramZones = params.get("zones")?.split(",") || DEFAULT_ZONES;
   const baseTime = params.get("time") ? new Date(params.get("time")) : new Date();
 
-  paramZones.forEach((z, i) => addZone(z, new Date(baseTime)));
+  paramZones.forEach(z => addZone(z, new Date(baseTime)));
 
   document.getElementById("add-zone").addEventListener("click", () => {
     addZone("UTC", new Date());
@@ -80,21 +80,19 @@ function syncRow(row, refDate) {
 }
 
 function toTimeZone(date, zone) {
-  return new Date(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: zone,
-      hour12: false,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).formatToParts(date).reduce((acc, part) => {
-      if (part.type !== "literal") acc[part.type] = part.value;
-      return acc;
-    }, {})
-    .let(d => `${d.year}-${d.month}-${d.day}T${d.hour}:${d.minute}`)
-  );
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).formatToParts(date).reduce((acc, part) => {
+    if (part.type !== "literal") acc[part.type] = part.value;
+    return acc;
+  }, {});
+  return new Date(`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:00`);
 }
 
 function formatLocalInput(date, zone) {
@@ -120,6 +118,3 @@ function updateURL() {
   params.set("zones", zones.map(z => z.zoneName).join(","));
   history.replaceState({}, "", "?" + params.toString());
 }
-
-// Polyfill hack
-Object.prototype.let = function(fn) { return fn(this); };
