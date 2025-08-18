@@ -3,8 +3,16 @@ import {
   normalize, tokensOrderedMatch, isValidDateTimeLocal, zoneOffsetLabel
 } from "./utils.js";
 
-// Defaults: Gold Coast (Brisbane), Pacific Time (PT), San Francisco
-const DEFAULT_ZONES = ["Australia/Brisbane", "America/Los_Angeles", "America/Los_Angeles"];
+/* Defaults shown on first load:
+   - Gold Coast (Australia/Brisbane)
+   - Pacific Time, PT (America/Los_Angeles)
+   - San Francisco (America/Los_Angeles)  // same zone, different label
+*/
+const DEFAULTS = [
+  { zone:"Australia/Brisbane", label:"Gold Coast" },
+  { zone:"America/Los_Angeles", label:"Pacific Time, PT" },
+  { zone:"America/Los_Angeles", label:"San Francisco" },
+];
 
 // DOM
 const zoneContainer = document.getElementById("zones");
@@ -24,18 +32,18 @@ const dlgTime = document.getElementById("edit-time");
 const dlgClose = document.getElementById("edit-close");
 const dlgApply = document.getElementById("edit-apply");
 
-// Trianglify canvases
-const triA = document.getElementById("tri-a");
-const triB = document.getElementById("tri-b");
+// BG canvases (Trianglify) as before
+const triA = document.getElementById("tri-a"), triB = document.getElementById("tri-b");
+let activeCanvas = triA, nextCanvas = triB;
 
-let zones = [];           // [{ row, cityA, metaA, timeBtn, face, removeBtn, zoneName, display, flag, country }]
+// State
+let zones = [];           // [{ row, cityBlock, cityA, meta, timeBtn, face, removeBtn, zoneName, display, flag, country }]
 let tzData = [];          // from json
 let tzIndex = null;
 let sharedInstant = null;
 let sortMode = "custom";
-let activeCanvas = triA, nextCanvas = triB;
 
-// ---- Trianglify background ----
+// ---- Trianglify (same as previous message) ----
 const palettes = [
   ["#0f172a","#1e293b","#334155","#0ea5e9","#22d3ee"],
   ["#0b1324","#1b3a4b","#2e5c6e","#34d399","#22d3ee"],
@@ -43,7 +51,7 @@ const palettes = [
   ["#0a0f1f","#14213d","#1f2937","#3b82f6","#a78bfa"]
 ];
 let paletteIndex = 0;
-function sizeCanvas(c){const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));c.width=Math.floor(innerWidth*dpr);c.height=Math.floor(innerHeight*dpr);c.style.width="100vw";c.style.height="100vh";}
+function sizeCanvas(c){const dpr=Math.max(1,Math.min(2,devicePixelRatio||1));c.width=Math.floor(innerWidth*dpr);c.height=Math.floor(innerHeight*dpr);c.style.width="100vw";c.style.height="100vh";}
 function renderTri(c,colors){ if(!window.trianglify) return; sizeCanvas(c);
   const pattern = window.trianglify({ width:c.width, height:c.height, cellSize:90+Math.random()*40, variance:.75, seed:Math.floor(Math.random()*1e9), xColors:colors, colorFunction:window.trianglify.colorFunctions.interpolateLinear(colors) });
   const ctx=c.getContext("2d"); ctx.clearRect(0,0,c.width,c.height); pattern.toCanvas(c);
@@ -52,59 +60,69 @@ function swapLayers(){ paletteIndex=(paletteIndex+1)%palettes.length; renderTri(
   nextCanvas.classList.toggle("drift-a", Math.random()>0.5); nextCanvas.classList.toggle("drift-b", !nextCanvas.classList.contains("drift-a"));
   nextCanvas.classList.add("active"); activeCanvas.classList.remove("active"); [activeCanvas,nextCanvas]=[nextCanvas,activeCanvas]; }
 function startBg(){ renderTri(activeCanvas,palettes[paletteIndex]); activeCanvas.classList.add("active","drift-a");
-  paletteIndex=(paletteIndex+1)%palettes.length; renderTri(nextCanvas,palettes[paletteIndex]); nextCanvas.classList.add("drift-b");
-  setInterval(swapLayers,10000); }
+  paletteIndex=(paletteIndex+1)%palettes.length; renderTri(nextCanvas,palettes[paletteIndex]); nextCanvas.classList.add("drift-b"); setInterval(swapLayers,10000); }
 addEventListener("resize",()=>{sizeCanvas(activeCanvas);sizeCanvas(nextCanvas);renderTri(activeCanvas,palettes[paletteIndex]);});
 
 // ---- Boot ----
 (async function init(){
   startBg();
   await loadTZ();
+
   // Params
   const params = new URLSearchParams(location.search);
   const zonesParam = params.get("zones");
   const timeParam  = params.get("time");
-  const startupZones = (zonesParam && zonesParam.split(",").filter(Boolean)) || DEFAULT_ZONES.slice();
-  sharedInstant = timeParam ? (timeParam.endsWith("Z")? new Date(timeParam) : parseWallAsInstant(timeParam, startupZones[0])) : new Date();
 
-  startupZones.forEach(z => addZone(z, sharedInstant));
+  const startup = [];
+  if (zonesParam){
+    zonesParam.split(",").filter(Boolean).forEach(z => startup.push({zone:z, label: (tzIndex.byZone.get(z)?.label || z)}));
+  }else{
+    startup.push(...DEFAULTS);
+  }
+
+  // shared instant
+  const firstZone = startup[0]?.zone || DEFAULTS[0].zone;
+  sharedInstant = timeParam ? (timeParam.endsWith("Z")? new Date(timeParam) : parseWallAsInstant(timeParam, firstZone)) : new Date();
+
+  // build rows
+  startup.forEach(o => addZone(o.zone, sharedInstant, o.label));
   paintAll();
   refreshPermalink();
 
-  // Search suggestions
+  // suggestions
   inputEl.addEventListener("focus", ()=> renderSuggestions(suggest("", 25)));
   inputEl.addEventListener("input", ()=> renderSuggestions(suggest(inputEl.value.trim(), 50)));
 
-  // Add
-  addBtn.addEventListener("click", ()=> {
-    const zone = resolveToZone(inputEl.value) || inputEl.value.trim();
-    if (!zone) return;
-    if (zones.some(z => z.zoneName === zone)) { inputEl.value = ""; return; }
-    addZone(zone, sharedInstant); inputEl.value = ""; updateURL(); refreshPermalink();
+  // add
+  addBtn.addEventListener("click", ()=>{
+    const raw = inputEl.value.trim();
+    if (!raw) return;
+    const byLabel = tzIndex.byLabel.get(normalize(raw)) || tzIndex.byAlias.get(normalize(raw));
+    const zone = resolveToZone(raw) || raw;
+    const preferred = byLabel?.label || raw;  // preserve user intent
+    if (zones.some(z => z.zoneName === zone && z.display === preferred)) { inputEl.value=""; return; }
+    addZone(zone, sharedInstant, preferred);
+    inputEl.value = ""; updateURL(); refreshPermalink();
   });
 
-  // Remove all
+  // remove all
   removeAllBtn.addEventListener("click", ()=>{
     zoneContainer.innerHTML = ""; zones = []; updateURL(); refreshPermalink();
   });
 
-  // Sort
-  sortSelect.addEventListener("change", ()=>{
-    sortMode = sortSelect.value;
-    reorderZones();
-  });
+  // sort
+  sortSelect.addEventListener("change", ()=>{ sortMode = sortSelect.value; reorderZones(); });
 
-  // Permalink
+  // permalink
   linkMode.addEventListener("change", refreshPermalink);
   copyBtn.addEventListener("click", ()=>{
-    linkBox.select(); document.execCommand?.("copy");
-    navigator.clipboard?.writeText(linkBox.value);
+    linkBox.select(); document.execCommand?.("copy"); navigator.clipboard?.writeText(linkBox.value);
   });
 
-  // Modal events
+  // modal
   dlgClose.addEventListener("click", ()=> dlg.close());
-  dlg.addEventListener("cancel", (e)=> e.preventDefault()); // prevent Esc closing form return
-  dlgApply.addEventListener("click", (e)=>{
+  dlg.addEventListener("cancel", e=> e.preventDefault());
+  dlgApply.addEventListener("click", e=>{
     e.preventDefault();
     if (!dlgDate.value || !dlgTime.value) return;
     const target = dlg._targetRow;
@@ -124,7 +142,7 @@ function renderSuggestions(list){
   });
 }
 
-// ----- data loading -----
+// ----- data -----
 async function loadTZ(){
   try{
     const res = await fetch("timezones.json", {cache:"no-store"});
@@ -148,7 +166,7 @@ function buildIndex(){
   }
 }
 
-// ----- resolution -----
+// ----- resolve/suggest -----
 function resolveToZone(input){
   if (!input) return null;
   const q = normalize(input);
@@ -187,65 +205,56 @@ function suggest(q, limit=50){
 }
 
 // ----- rows -----
-function addZone(zoneName, instant){
+function addZone(zoneName, instant, preferredLabel){
   const base = tzIndex.byZone.get(zoneName) || { label: zoneName, country: zoneName.split("/")[0], flag:"🌐" };
+  const display = preferredLabel || base.label;
+
   const row = document.createElement("div");
   row.className = "zone-row";
 
   const dragdot = document.createElement("span"); dragdot.textContent="⋮⋮"; dragdot.className="dragdot";
   const flag = document.createElement("span"); flag.textContent = base.flag || "🌐"; flag.className="flag";
 
-  const cityA = document.createElement("a"); cityA.className="city"; cityA.href="#"; cityA.textContent = base.label;
-  const metaA = document.createElement("span"); metaA.className="meta";
+  const cityBlock = document.createElement("div"); cityBlock.className="city-block";
+  const cityA = document.createElement("a"); cityA.className="city"; cityA.href="#"; cityA.textContent = display;
+  const meta = document.createElement("span"); meta.className="meta";
+  cityBlock.append(cityA, meta);
 
   const timeBtn = document.createElement("button"); timeBtn.className="time-box"; timeBtn.title="";
   const face = document.createElement("span"); face.className="face"; face.textContent="🙂";
-
   const removeBtn = document.createElement("button"); removeBtn.className="remove"; removeBtn.textContent="×";
 
-  row.append(dragdot, flag, cityA, timeBtn, face, removeBtn);
+  row.append(dragdot, flag, cityBlock, timeBtn, face, removeBtn);
   zoneContainer.appendChild(row);
 
   const record = {
-    row, cityA, metaA, timeBtn, face, removeBtn,
-    zoneName, display: base.label, flag: base.flag || "🌐", country: base.country || zoneName.split("/")[0]
+    row, cityBlock, cityA, meta, timeBtn, face, removeBtn,
+    zoneName, display, flag: base.flag || "🌐", country: base.country || zoneName.split("/")[0]
   };
   zones.push(record);
 
-  // clicking city or time opens modal
   cityA.addEventListener("click", (e)=>{ e.preventDefault(); openEdit(record); });
   timeBtn.addEventListener("click", ()=> openEdit(record));
+  removeBtn.addEventListener("click", ()=>{ row.remove(); zones = zones.filter(z => z !== record); updateURL(); refreshPermalink(); });
 
-  removeBtn.addEventListener("click", ()=>{
-    row.remove(); zones = zones.filter(z => z !== record); updateURL(); refreshPermalink();
-  });
-
-  // initial paint
   paintRow(record, instant);
 }
 
 function paintRow(rec, instant){
-  // meta (offset label)
   const off = zoneOffsetLabel(instant, rec.zoneName);
-  rec.cityA.nextElementSibling?.remove(); // ensure unique meta
-  rec.cityA.insertAdjacentElement("afterend", rec.metaA);
-  rec.metaA.textContent = `${rec.country} • ${off}`;
+  rec.meta.textContent = `${rec.country} • ${off}`;
 
-  // time & status
   const local = toTimeZone(instant, rec.zoneName);
-  const display = new Intl.DateTimeFormat(undefined, { weekday:"short", day:"2-digit", month:"short", year:"numeric", hour:"numeric", minute:"2-digit" , hour12:true, timeZone: rec.zoneName}).format(local);
   const timeOnly = new Intl.DateTimeFormat(undefined, { hour:"numeric", minute:"2-digit", hour12:true, timeZone: rec.zoneName}).format(local);
   rec.timeBtn.textContent = timeOnly;
 
   const bh = isBusinessHours(instant, rec.zoneName); // "good" | "neutral" | "bad"
   rec.row.classList.remove("good","neutral","bad"); rec.row.classList.add(bh);
-  const tip = (bh==="good") ? "General working hours" : (bh==="neutral" ? "Should be OK for some" : "General non-working hours");
-  rec.timeBtn.title = tip;
+  rec.timeBtn.title = (bh==="good") ? "General working hours" : (bh==="neutral" ? "Should be OK for some" : "General non-working hours");
   rec.face.textContent = (bh==="good") ? "🙂" : (bh==="neutral" ? "😐" : "☹");
 
-  // store the ISO for shareable link if this row is first
+  // update URL from first row's wall time (readable)
   if (zones[0] === rec){
-    // keep first row's wall time in URL (readable)
     const parts = new Intl.DateTimeFormat("en-CA", {timeZone:rec.zoneName, hour12:false, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"}).formatToParts(local).reduce((a,p)=>{if(p.type!=="literal")a[p.type]=p.value; return a;}, {});
     const wall = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
     const p = new URLSearchParams(); p.set("time", wall); p.set("zones", zones.map(z=>z.zoneName).join(","));
@@ -257,40 +266,26 @@ function paintAll(){ zones.forEach(z => paintRow(z, sharedInstant)); reorderZone
 
 // ----- modal -----
 function openEdit(rec){
-  // seed dialog with this row's local wall time
   const local = toTimeZone(sharedInstant, rec.zoneName);
-  const y = local.getFullYear();
-  const mm = String(local.getMonth()+1).padStart(2,"0");
-  const dd = String(local.getDate()).padStart(2,"0");
-  const HH = String(local.getHours()).padStart(2,"0");
-  const MM = String(local.getMinutes()).padStart(2,"0");
-
+  const y = local.getFullYear(), mm=String(local.getMonth()+1).padStart(2,"0"), dd=String(local.getDate()).padStart(2,"0");
+  const HH = String(local.getHours()).padStart(2,"0"), MM = String(local.getMinutes()).padStart(2,"0");
   dlgCity.textContent = rec.display;
-  const mood = isBusinessHours(sharedInstant, rec.zoneName);
-  dlgFace.textContent = (mood==="good")?"🙂":(mood==="neutral"?"😐":"☹");
-
-  dlgDate.value = `${y}-${mm}-${dd}`;
-  dlgTime.value = `${HH}:${MM}`;
-  dlg._targetRow = rec;
-  dlg.showModal();
+  const mood = isBusinessHours(sharedInstant, rec.zoneName); dlgFace.textContent = (mood==="good")?"🙂":(mood==="neutral"?"😐":"☹");
+  dlgDate.value = `${y}-${mm}-${dd}`; dlgTime.value = `${HH}:${MM}`;
+  dlg._targetRow = rec; dlg.showModal();
 }
 
-// ----- sorting / reorder -----
+// ----- sort / reorder -----
 function reorderZones(applyMode=true){
   if (applyMode) sortMode = sortSelect.value;
   const arr = zones.slice();
-  const cmp = (a,b)=>0;
-  let compare = cmp;
+  let compare = null;
 
   const byCityAsc = (a,b)=> a.display.localeCompare(b.display);
   const byCityDesc = (a,b)=> b.display.localeCompare(a.display);
   const byCountryAsc = (a,b)=> (a.country||"").localeCompare(b.country||"") || a.display.localeCompare(b.display);
   const byCountryDesc = (a,b)=> (b.country||"").localeCompare(a.country||"") || a.display.localeCompare(b.display);
-  const byTimeAsc = (a,b)=> {
-    const la = toTimeZone(sharedInstant, a.zoneName);
-    const lb = toTimeZone(sharedInstant, b.zoneName);
-    return la.getTime() - lb.getTime();
-  };
+  const byTimeAsc = (a,b)=> toTimeZone(sharedInstant, a.zoneName) - toTimeZone(sharedInstant, b.zoneName);
   const byTimeDesc = (a,b)=> -byTimeAsc(a,b);
 
   if (sortMode==="city-asc") compare = byCityAsc;
@@ -299,23 +294,19 @@ function reorderZones(applyMode=true){
   else if (sortMode==="country-desc") compare = byCountryDesc;
   else if (sortMode==="time-asc") compare = byTimeAsc;
   else if (sortMode==="time-desc") compare = byTimeDesc;
-  else compare = null;
 
   if (compare){
     arr.sort(compare);
-    // re-append in new order
     arr.forEach(r => zoneContainer.appendChild(r.row));
     zones = arr;
   }
 }
 
-// ----- shareable link -----
+// ----- permalink -----
 function refreshPermalink(){
-  const mode = linkMode.value; // "selected" | "now"
+  const mode = linkMode.value;
   const baseInstant = (mode==="now") ? new Date() : sharedInstant;
-  // using first row's wall time, but regenerate ISO UTC for robustness
   const first = zones[0];
-  let iso = new Date(baseInstant).toISOString();
   if (first){
     const inFirst = toTimeZone(baseInstant, first.zoneName);
     const y=inFirst.getFullYear(), mm=String(inFirst.getMonth()+1).padStart(2,"0"), dd=String(inFirst.getDate()).padStart(2,"0");
@@ -324,13 +315,12 @@ function refreshPermalink(){
     const p = new URLSearchParams(); p.set("time", wall); p.set("zones", zones.map(z=>z.zoneName).join(","));
     linkBox.value = `${location.origin}${location.pathname}?${p.toString()}`;
   }else{
-    linkBox.value = `${location.origin}${location.pathname}?iso=${iso}`;
+    linkBox.value = `${location.origin}${location.pathname}`;
   }
 }
 
-// ----- utils (local to app) -----
+// ----- helpers -----
 function parseWallAsInstant(inputValue, zone){
-  // "yyyy-MM-ddTHH:mm" (wall) -> UTC instant
   const [d,t]=inputValue.split("T"); const [y,m,dd]=d.split("-").map(Number); const [H,Min]=t.split(":").map(Number);
   const approxUTC = new Date(Date.UTC(y, m-1, dd, H, Min));
   const off = getOffsetMinutes(approxUTC, zone);
