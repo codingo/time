@@ -26,3 +26,18 @@ export function isBusinessHours(date, zone) {
   const h = inZone.getHours() + inZone.getMinutes() / 60;
   return h >= 8 && h < 16;
 }
+
+// Simple normalize and token-ordered search (for “san fr” → “san … francisco”)
+export function normalize(s){
+  return s.toLowerCase().replace(/[_/,-]/g," ").replace(/\s+/g," ").trim();
+}
+export function tokensOrderedMatch(qTokens, hay){
+  // qTokens: ["san","fr"]  hay: "san francisco ..."
+  let lastIdx = 0;
+  for (const t of qTokens){
+    const idx = hay.indexOf(t, lastIdx);
+    if (idx === -1) return false;
+    lastIdx = idx + t.length;
+  }
+  return true;
+}
