@@ -2,8 +2,10 @@ const $ = (id) => document.getElementById(id);
 
 // ---------- State (from URL) ----------
 const url = new URL(location.href);
-const initialZones = (url.searchParams.get("zones") || "Australia/Brisbane,America/Los_Angeles,UTC")
-  .split(",").filter(Boolean);
+const initialZones = (url.searchParams.get("zones")
+  || "Australia/Brisbane,America/Los_Angeles,America/New_York" // Gold Coast, San Francisco, New Hampshire
+).split(",").filter(Boolean);
+
 let when = url.searchParams.get("time") ? new Date(url.searchParams.get("time")) : new Date(); // stored as UTC instant
 let zones = Array.from(new Set(initialZones));
 
@@ -75,19 +77,23 @@ function removeZone(zone) {
   render(); syncQuery();
 }
 
-// ---------- Render list (each row editable) ----------
+// ---------- Render list (each row editable and coloured) ----------
 const listEl = $("list");
 function render() {
   listEl.innerHTML = "";
   for (const z of zones) {
-    const li = document.createElement("li");
-    li.className = "zone card";
+    const good = isBusinessHours(when, z);
 
-    const label = `
-      <div class="meta">
-        <div class="name">${displayCity(z)}</div>
-        <div class="sub">${z} • ${offsetStr(z)} • ${isBusinessHours(when, z) ? "🙂" : "☹"}</div>
-      </div>
+    const li = document.createElement("li");
+    li.className = "zone card " + (good ? "ok" : "bad"); // colour by status
+
+    const city = displayCity(z);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = `
+      <div class="name">${city}</div>
+      <div class="sub">${z} • ${offsetStr(z)}</div>
     `;
 
     // datetime-local showing wall-time in this zone
@@ -96,18 +102,17 @@ function render() {
     dt.className = "row-when";
     dt.value = toInputForZone(when, z);
     dt.addEventListener("input", (e) => {
-      // interpret the edited value as wall time IN THIS ZONE -> compute new shared UTC 'when'
-      when = fromInputForZone(e.target.value, z);
-      render(); // re-render all rows to reflect new instant
+      when = fromInputForZone(e.target.value, z); // new shared instant
+      render();
       syncQuery();
     });
 
+    // Clickable time text mirrors dt (click focuses input)
     const timeTxt = document.createElement("div");
-    timeTxt.className = "time";
+    timeTxt.className = "time linklike";
     timeTxt.textContent = formatAt(when, z);
-
-    const left = document.createElement("div");
-    left.innerHTML = label;
+    timeTxt.title = "Click to edit time";
+    timeTxt.addEventListener("click", () => dt.showPicker ? dt.showPicker() : dt.focus());
 
     const kill = document.createElement("button");
     kill.className = "kill btn tiny";
@@ -117,7 +122,7 @@ function render() {
 
     const row = document.createElement("div");
     row.className = "zone-row";
-    row.appendChild(left);
+    row.appendChild(meta);
     row.appendChild(timeTxt);
     row.appendChild(dt);
     row.appendChild(kill);
@@ -150,13 +155,11 @@ function toInputForZone(dUTC, tz) {
 }
 
 function fromInputForZone(inputValue, tz) {
-  // Parse yyyy-MM-ddTHH:mm as a wall-time in tz, produce corresponding UTC instant
   const [datePart, timePart] = inputValue.split("T");
   const [y, m, d] = datePart.split("-").map(Number);
   const [H, Min] = timePart.split(":").map(Number);
-  // Start from the provided wall time as if UTC, then offset-correct for tz at that wall time
   const approxUTC = new Date(Date.UTC(y, m - 1, d, H, Min));
-  const offMins = offsetMinutesAt(approxUTC, tz); // minutes east of UTC
+  const offMins = offsetMinutesAt(approxUTC, tz);
   return new Date(approxUTC.getTime() - offMins * 60 * 1000);
 }
 
@@ -198,7 +201,7 @@ function isBusinessHours(dateUTC, timeZone) {
   return h >= 8 && h < 16;
 }
 
-// ---------- Fallback tz list for older browsers ----------
+// ---------- Fallback tz list ----------
 function fallbackTz() {
   return [
     "UTC",
