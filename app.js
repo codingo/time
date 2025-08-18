@@ -6,7 +6,7 @@ const initialZones = (url.searchParams.get("zones")
   || "Australia/Brisbane,America/Los_Angeles,America/New_York" // Gold Coast, San Francisco, New Hampshire
 ).split(",").filter(Boolean);
 
-let when = url.searchParams.get("time") ? new Date(url.searchParams.get("time")) : new Date(); // stored as UTC instant
+let when = url.searchParams.get("time") ? new Date(url.searchParams.get("time")) : new Date(); // shared UTC instant
 let zones = Array.from(new Set(initialZones));
 
 // ---------- Time zone catalogue ----------
@@ -77,7 +77,7 @@ function removeZone(zone) {
   render(); syncQuery();
 }
 
-// ---------- Render list (each row editable and coloured) ----------
+// ---------- Render list (each row editable & coloured) ----------
 const listEl = $("list");
 function render() {
   listEl.innerHTML = "";
@@ -85,7 +85,7 @@ function render() {
     const good = isBusinessHours(when, z);
 
     const li = document.createElement("li");
-    li.className = "zone card " + (good ? "ok" : "bad"); // colour by status
+    li.className = `zone card ${good ? "ok" : "bad"}`;
 
     const city = displayCity(z);
 
@@ -107,7 +107,7 @@ function render() {
       syncQuery();
     });
 
-    // Clickable time text mirrors dt (click focuses input)
+    // Clickable time text mirrors dt (click focuses picker)
     const timeTxt = document.createElement("div");
     timeTxt.className = "time linklike";
     timeTxt.textContent = formatAt(when, z);
