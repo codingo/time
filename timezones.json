@@ -1,43 +1,23 @@
 [
-  { "label": "Gold Coast", "zone": "Australia/Brisbane", "aliases": ["Brisbane", "QLD", "Sunshine Coast", "AEST (no DST)"] },
-  { "label": "Sydney", "zone": "Australia/Sydney", "aliases": ["NSW", "AEDT", "AEST", "Canberra", "New South Wales"] },
-  { "label": "Melbourne", "zone": "Australia/Melbourne", "aliases": ["VIC", "Victoria", "AEDT", "AEST"] },
-  { "label": "Perth", "zone": "Australia/Perth", "aliases": ["WA", "Western Australia", "AWST"] },
-  { "label": "Adelaide", "zone": "Australia/Adelaide", "aliases": ["SA", "South Australia", "ACST", "ACDT"] },
-  { "label": "Auckland", "zone": "Pacific/Auckland", "aliases": ["Wellington", "NZ", "NZDT", "NZST"] },
+  { "label": "Gold Coast", "zone": "Australia/Brisbane", "country": "Australia", "flag": "🇦🇺", "aliases": ["Brisbane", "QLD", "Sunshine Coast", "AEST (no DST)"] },
+  { "label": "Sydney", "zone": "Australia/Sydney", "country": "Australia", "flag": "🇦🇺", "aliases": ["NSW", "AEDT", "AEST", "Canberra", "New South Wales"] },
 
-  { "label": "San Francisco", "zone": "America/Los_Angeles", "aliases": ["SF", "Bay Area", "Silicon Valley", "Los Angeles", "LA", "San Jose", "SJ", "Oakland", "PT", "PST", "PDT", "San Fran", "San Fr"] },
-  { "label": "Seattle", "zone": "America/Los_Angeles", "aliases": ["WA", "Pacific Time"] },
-  { "label": "Denver", "zone": "America/Denver", "aliases": ["Mountain Time", "MT", "MST", "MDT", "Boulder", "Salt Lake City", "SLC", "Boise"] },
-  { "label": "Chicago", "zone": "America/Chicago", "aliases": ["Central Time", "CT", "CST", "CDT", "Austin", "Dallas", "Houston", "Minneapolis", "Nashville"] },
-  { "label": "New York", "zone": "America/New_York", "aliases": ["NYC", "Eastern Time", "ET", "EST", "EDT", "Boston", "Miami", "Philadelphia", "Atlanta", "New Hampshire", "NH", "Washington DC", "DC"] },
-  { "label": "Phoenix", "zone": "America/Phoenix", "aliases": ["AZ", "Arizona Time", "MST (no DST)", "Scottsdale", "Tucson"] },
+  { "label": "San Francisco", "zone": "America/Los_Angeles", "country": "USA", "flag": "🇺🇸", "aliases": ["SF", "Bay Area", "Silicon Valley", "Los Angeles", "LA", "San Jose", "SJ", "Oakland", "PT", "PST", "PDT", "San Fran", "San Fr"] },
+  { "label": "Pacific Time, PT", "zone": "America/Los_Angeles", "country": "USA", "flag": "🌐", "aliases": ["PT", "PDT", "PST", "Pacific Time"] },
+  { "label": "New Hampshire", "zone": "America/New_York", "country": "USA", "flag": "🇺🇸", "aliases": ["NH", "Eastern Time", "ET", "EST", "EDT"] },
 
-  { "label": "London", "zone": "Europe/London", "aliases": ["UK", "Britain", "GMT", "BST"] },
-  { "label": "Paris", "zone": "Europe/Paris", "aliases": ["France", "CET", "CEST", "Lyon"] },
-  { "label": "Berlin", "zone": "Europe/Berlin", "aliases": ["Germany", "Munich", "Frankfurt", "CET", "CEST"] },
-  { "label": "Amsterdam", "zone": "Europe/Amsterdam", "aliases": ["Netherlands", "NL", "CET", "CEST"] },
-  { "label": "Madrid", "zone": "Europe/Madrid", "aliases": ["Spain", "Barcelona", "Valencia", "CET", "CEST"] },
-  { "label": "Rome", "zone": "Europe/Rome", "aliases": ["Milan", "Italy", "CET", "CEST"] },
-  { "label": "Lisbon", "zone": "Europe/Lisbon", "aliases": ["Portugal", "WET", "WEST"] },
+  { "label": "London", "zone": "Europe/London", "country": "United Kingdom", "flag": "🇬🇧", "aliases": ["UK", "Britain", "GMT", "BST"] },
+  { "label": "Paris", "zone": "Europe/Paris", "country": "France", "flag": "🇫🇷", "aliases": ["France", "CET", "CEST", "Lyon"] },
+  { "label": "Berlin", "zone": "Europe/Berlin", "country": "Germany", "flag": "🇩🇪", "aliases": ["Germany", "Munich", "Frankfurt", "CET", "CEST"] },
+  { "label": "Amsterdam", "zone": "Europe/Amsterdam", "country": "Netherlands", "flag": "🇳🇱", "aliases": ["Netherlands", "NL", "CET", "CEST"] },
 
-  { "label": "Dubai", "zone": "Asia/Dubai", "aliases": ["UAE", "Gulf", "GST"] },
-  { "label": "Mumbai", "zone": "Asia/Kolkata", "aliases": ["Bombay", "Delhi", "Bangalore", "Bengaluru", "India", "IST"] },
-  { "label": "Bangkok", "zone": "Asia/Bangkok", "aliases": ["Thailand", "TH", "ICT"] },
-  { "label": "Singapore", "zone": "Asia/Singapore", "aliases": ["SG", "SGT"] },
-  { "label": "Hong Kong", "zone": "Asia/Hong_Kong", "aliases": ["HK", "HKT"] },
-  { "label": "Tokyo", "zone": "Asia/Tokyo", "aliases": ["JP", "JST", "Osaka", "Yokohama"] },
-  { "label": "Seoul", "zone": "Asia/Seoul", "aliases": ["Korea", "KR", "KST"] },
+  { "label": "Singapore", "zone": "Asia/Singapore", "country": "Singapore", "flag": "🇸🇬", "aliases": ["SG", "SGT"] },
+  { "label": "Tokyo", "zone": "Asia/Tokyo", "country": "Japan", "flag": "🇯🇵", "aliases": ["JP", "JST", "Osaka"] },
+  { "label": "Dubai", "zone": "Asia/Dubai", "country": "United Arab Emirates", "flag": "🇦🇪", "aliases": ["UAE", "Gulf", "GST"] },
 
-  { "label": "Johannesburg", "zone": "Africa/Johannesburg", "aliases": ["South Africa", "ZA", "SAST", "Cape Town"] },
-  { "label": "Nairobi", "zone": "Africa/Nairobi", "aliases": ["Kenya", "EAT", "East Africa"] },
-  { "label": "Casablanca", "zone": "Africa/Casablanca", "aliases": ["Morocco", "WEST"] },
+  { "label": "Johannesburg", "zone": "Africa/Johannesburg", "country": "South Africa", "flag": "🇿🇦", "aliases": ["South Africa", "ZA", "SAST", "Cape Town"] },
 
-  { "label": "São Paulo", "zone": "America/Sao_Paulo", "aliases": ["Brazil", "BR", "BRT", "Brasília", "Rio de Janeiro"] },
-  { "label": "Mexico City", "zone": "America/Mexico_City", "aliases": ["CDMX", "MX", "México"] },
+  { "label": "São Paulo", "zone": "America/Sao_Paulo", "country": "Brazil", "flag": "🇧🇷", "aliases": ["Brazil", "BR", "BRT", "Brasília", "Rio de Janeiro"] },
 
-  { "label": "Honolulu", "zone": "Pacific/Honolulu", "aliases": ["Hawaii", "HI", "HST"] },
-  { "label": "Anchorage", "zone": "America/Anchorage", "aliases": ["Alaska", "AK", "AKST", "AKDT"] },
-
-  { "label": "UTC", "zone": "UTC", "aliases": ["Coordinated Universal Time", "Zulu", "Z", "GMT"] }
+  { "label": "UTC", "zone": "UTC", "country": "—", "flag": "🕒", "aliases": ["Coordinated Universal Time", "Zulu", "Z", "GMT"] }
 ]
