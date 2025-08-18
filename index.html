@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Time • codingo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>Timezones</h1>
+    <div class="controls">
+      <input id="when" type="datetime-local" />
+      <button id="nowBtn" title="Set to now">Now</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="picker">
+      <input id="tzSearch" class="input" placeholder="Add city/zone (e.g., Brisbane, San Francisco, PT, America/Los_Angeles)" />
+      <ul id="results" class="menu"></ul>
+      <button id="addBtn" class="primary">Add</button>
+      <button id="removeAllBtn" class="ghost">Remove all</button>
+    </section>
+
+    <section>
+      <ul id="list" class="zones"></ul>
+    </section>
+  </main>
+
+  <footer class="wrap tiny">
+    <span>🙂 between 08:00–16:00 local • ☹ outside</span>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
