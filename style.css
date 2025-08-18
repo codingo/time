@@ -19,7 +19,14 @@ body{
 .logo-video{width:180px;display:block;margin:0 auto 1rem;border-radius:12px}
 
 main{max-width:860px;margin:0 auto;padding:1rem}
+
 .controls{margin-bottom:1.25rem}
+.add-wrap{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.zone-input{
+  width:min(520px,90vw);
+  background:#0b1220;border:1px solid #22304a;color:#e2e8f0;
+  padding:.6rem .7rem;border-radius:10px;font-size:1rem
+}
 #add-zone{
   background:#0ea5e9;border:none;color:#fff;padding:.6rem 1rem;
   border-radius:10px;font-weight:700;cursor:pointer
@@ -27,7 +34,7 @@ main{max-width:860px;margin:0 auto;padding:1rem}
 #add-zone:hover{background:#0284c7}
 .shareable{opacity:.9;margin:.6rem 0 0}
 
-#zones{margin-top:8px}
+#zones{margin-top:12px}
 
 .zone-row{
   display:flex;gap:10px;align-items:center;justify-content:space-between;
