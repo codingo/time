@@ -20,12 +20,15 @@ export function formatLocalInput(date, zone) {
 export function isBusinessHours(date, zone) {
   const inZone = toTimeZone(date, zone);
   const d = inZone.getDay(); // 0 Sun, 6 Sat
-  if (d === 0 || d === 6) return false;
   const h = inZone.getHours() + inZone.getMinutes() / 60;
-  return h >= 8 && h < 16;
+  // 08:00–16:00 weekdays; add a 'neutral' band (7–8, 16–18)
+  if (d === 0 || d === 6) return "bad";
+  if (h >= 8 && h < 16) return "good";
+  if ((h >= 7 && h < 8) || (h >= 16 && h < 18)) return "neutral";
+  return "bad";
 }
 
-// Search helpers
+// human bits
 export function normalize(s){
   return s.toLowerCase().replace(/[_/,-]/g," ").replace(/\s+/g," ").trim();
 }
@@ -38,8 +41,11 @@ export function tokensOrderedMatch(qTokens, hay){
   }
   return true;
 }
-
-// Validation for datetime-local during typing
 export function isValidDateTimeLocal(v){
   return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v);
+}
+
+export function zoneOffsetLabel(dateUTC, zone){
+  const parts = new Intl.DateTimeFormat("en", { timeZone: zone, timeZoneName: "shortOffset" }).formatToParts(dateUTC);
+  return parts.find(p => p.type === "timeZoneName")?.value || "UTC+00:00";
 }
