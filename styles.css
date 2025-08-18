@@ -1,11 +1,8 @@
 :root {
   --bg:#0b0d12; --panel:#121623; --edge:#21273b;
   --text:#eef2ff; --muted:#9aa3b2; --accent:#48a6ff; --danger:#ff5d5d;
-  /* Row colours (theme-friendly) */
-  --ok-bg: rgba(30, 164, 110, 0.18);
-  --ok-edge: rgba(30, 164, 110, 0.55);
-  --bad-bg: rgba(176, 40, 62, 0.18);
-  --bad-edge: rgba(176, 40, 62, 0.55);
+  --ok-bg: rgba(46,212,141,.16); --ok-edge: rgba(46,212,141,.55);
+  --bad-bg: rgba(191,56,79,.16); --bad-edge: rgba(191,56,79,.55);
 }
 * { box-sizing:border-box }
 html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(--text);
@@ -23,7 +20,7 @@ html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(-
 .wrap { max-width:1000px; margin:0 auto; padding:20px; }
 .header { display:flex; align-items:center; justify-content:flex-start; gap:12px; }
 .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text); }
-.logo { height:28px; width:auto; }
+.logo { height:28px; width:auto; vertical-align:middle }
 .brand-text { font-weight:800; letter-spacing:.3px }
 
 .column { display:flex; flex-direction:column; gap:18px }
@@ -52,16 +49,9 @@ html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(-
 .btn.ghost { background:transparent }
 .btn.tiny { padding:6px 8px }
 
-.social-block { margin-top:14px; display:flex; flex-wrap:wrap; gap:10px }
-.social-btn {
-  text-decoration:none; color:var(--text); background:rgba(72,166,255,.12);
-  border:1px solid rgba(72,166,255,.35); padding:8px 12px; border-radius:999px; font-weight:700;
-}
-.social-btn:hover { background:rgba(72,166,255,.2) }
-
+/* list + rows */
 .list { display:flex; flex-direction:column; gap:12px }
 .section-title { margin:0 0 4px 2px; font-size:14px; color:var(--muted); font-weight:600 }
-
 .zones { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px }
 
 .zone-row { display:grid; grid-template-columns: minmax(220px, 1fr) auto 220px auto; align-items:center; gap:12px }
@@ -76,19 +66,24 @@ html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(-
 
 .kill { background:#20131a; border-color:#3a2026; color:var(--danger) }
 
-.tiny { font-size:12px }
-.muted { color:var(--muted) }
-.footer { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:20px }
+/* footer + socials */
+.footer { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin:12px 0 20px }
 .emph { font-weight:800 }
+.social-block { display:flex; flex-wrap:wrap; gap:10px }
+.social-btn {
+  text-decoration:none; color:var(--text); background:rgba(72,166,255,.12);
+  border:1px solid rgba(72,166,255,.35); padding:8px 12px; border-radius:999px; font-weight:700;
+}
+.social-btn:hover { background:rgba(72,166,255,.2) }
 
 /* ----- Row colouring by status ----- */
 .zone.ok {
-  background: linear-gradient(180deg, rgba(46, 212, 141, 0.15), rgba(255,255,255,0.00));
+  background: linear-gradient(180deg, var(--ok-bg), rgba(255,255,255,0));
   border-color: var(--ok-edge);
-  box-shadow: 0 0 0 1px rgba(46,212,141,0.15) inset;
+  box-shadow: inset 4px 0 0 0 var(--ok-edge);
 }
 .zone.bad {
-  background: linear-gradient(180deg, rgba(191, 56, 79, 0.16), rgba(255,255,255,0.00));
+  background: linear-gradient(180deg, var(--bad-bg), rgba(255,255,255,0));
   border-color: var(--bad-edge);
-  box-shadow: 0 0 0 1px rgba(191,56,79,0.12) inset;
+  box-shadow: inset 4px 0 0 0 var(--bad-edge);
 }
