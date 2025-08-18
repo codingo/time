@@ -1,7 +1,6 @@
-// --- tiny utility: query by id
 const $ = (id) => document.getElementById(id);
 
-// --- state from URL (zones as IANA IDs, time as ISO)
+// --- state
 const url = new URL(location.href);
 const initialZones = (url.searchParams.get("zones") || "Australia/Brisbane,America/Los_Angeles,UTC")
   .split(",")
@@ -9,12 +8,13 @@ const initialZones = (url.searchParams.get("zones") || "Australia/Brisbane,Ameri
 let when = url.searchParams.get("time") ? new Date(url.searchParams.get("time")) : new Date();
 let zones = Array.from(new Set(initialZones));
 
-// --- wire inputs
-$("when").value = toLocalInputValue(when);
-$("nowBtn").onclick = () => { when = new Date(); $("when").value = toLocalInputValue(when); render(); syncQuery(); };
-$("when").oninput = (e) => { when = new Date(e.target.value); render(); syncQuery(); };
+// --- base timezone (first in list)
+const baseZoneLabelEl = document.getElementById("baseZoneLabel");
+const baseZone = () => zones[0] || "UTC";
+const updateBaseLabel = () => baseZoneLabelEl.textContent = baseZone();
+updateBaseLabel();
 
-// --- build time zone index from browser (self-hosted, no CDN)
+// --- all tz from browser
 const allTz = (Intl.supportedValuesOf && Intl.supportedValuesOf("timeZone")) || fallbackTz();
 const items = allTz.map(zone => ({
   zone,
@@ -22,20 +22,8 @@ const items = allTz.map(zone => ({
   region: zone.split("/")[0],
 }));
 
-// --- human aliases (so "San Francisco" finds LA/PT)
-const ALIAS = {
-  "America/Los_Angeles": ["San Francisco", "SF", "Bay Area", "Los Angeles", "LA", "Pacific", "PT", "PST", "PDT"],
-  "America/New_York": ["New York", "NYC", "ET", "Eastern"],
-  "Europe/London": ["London", "UK", "GMT", "BST"],
-  "Australia/Brisbane": ["Brisbane", "QLD", "AEST (no DST)"],
-  "Australia/Sydney": ["Sydney", "NSW", "AEST", "AEDT"],
-  "Europe/Paris": ["Paris", "CET", "CEST"],
-  "Asia/Tokyo": ["Tokyo", "JST"],
-  "Asia/Singapore": ["Singapore", "SGT"],
-  "Pacific/Auckland": ["Auckland", "NZ", "NZT"],
-};
-
-// --- simple fuzzy search (no external libs)
+// --- alias search
+const ALIAS = (window.ALIASES) || {};
 function search(q, limit = 10) {
   if (!q) return [];
   q = q.toLowerCase().trim();
@@ -48,10 +36,8 @@ function search(q, limit = 10) {
       ...(ALIAS[it.zone] || [])
     ].join(" ").toLowerCase();
 
-    // scoring: startsWith > includes > split-token match
     if (hay.startsWith(q)) return 0;
     if (hay.includes(q)) return 1;
-    // token proximity
     const tokenHit = hay.split(/[/\s,_-]+/).some(t => t.startsWith(q));
     return tokenHit ? 2 : 999;
   };
@@ -63,6 +49,36 @@ function search(q, limit = 10) {
     .slice(0, limit)
     .map(x => x.it);
 }
+
+// --- datetime-local helpers
+function toInputForZone(dUTC, tz) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(dUTC).reduce((a,p)=> (a[p.type]=p.value,a),{});
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+function fromInputForZone(inputValue, tz) {
+  const [y,m,dTh] = inputValue.split("-");
+  const [d,hm] = dTh.split("T");
+  const [H,Min] = hm.split(":");
+  const approxUTC = new Date(Date.UTC(+y, +m-1, +d, +H, +Min));
+  const off = offsetMinutesAt(new Date(approxUTC), tz);
+  return new Date(approxUTC.getTime() - off*60*1000);
+}
+
+// --- wire datetime picker
+$("when").value = toInputForZone(when, baseZone());
+$("nowBtn").onclick = () => {
+  when = new Date();
+  $("when").value = toInputForZone(when, baseZone());
+  render(); syncQuery();
+};
+$("when").oninput = (e) => {
+  when = fromInputForZone(e.target.value, baseZone());
+  render(); syncQuery();
+};
 
 // --- picker UI
 const searchEl = $("tzSearch");
@@ -85,20 +101,25 @@ $("addBtn").onclick = () => {
 };
 $("removeAllBtn").onclick = () => { zones = []; render(); syncQuery(); };
 
+// --- add/remove
 function addZone(zone) {
   if (!zones.includes(zone)) zones.push(zone);
   searchEl.value = "";
   resultsEl.innerHTML = "";
   render();
+  updateBaseLabel();
+  $("when").value = toInputForZone(when, baseZone());
   syncQuery();
 }
 function removeZone(zone) {
   zones = zones.filter(z => z !== zone);
   render();
+  updateBaseLabel();
+  $("when").value = toInputForZone(when, baseZone());
   syncQuery();
 }
 
-// --- render selected zones
+// --- render
 const listEl = $("list");
 function render() {
   listEl.innerHTML = "";
@@ -120,24 +141,16 @@ function render() {
 render();
 syncQuery();
 
-// --- helpers
+// --- query sync
 function syncQuery() {
   const p = new URLSearchParams();
   if (zones.length) p.set("zones", zones.join(","));
   p.set("time", when.toISOString());
   history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
 }
-function displayCity(zone) { return zone.split("/").pop().replace(/_/g, " "); }
 
-function toLocalInputValue(d) {
-  const pad = (x) => String(x).padStart(2, "0");
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const dd = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const mm = pad(d.getMinutes());
-  return `${y}-${m}-${dd}T${hh}:${mm}`;
-}
+// --- helpers
+function displayCity(zone) { return zone.split("/").pop().replace(/_/g, " "); }
 function formatAt(date, timeZone) {
   return new Intl.DateTimeFormat(undefined, {
     timeZone,
@@ -150,7 +163,6 @@ function formatAt(date, timeZone) {
   }).format(date);
 }
 function offsetMinutesAt(date, timeZone) {
-  // extract "GMT±HH:MM" from parts
   const parts = new Intl.DateTimeFormat("en", { timeZone, timeZoneName: "shortOffset" }).formatToParts(date);
   const off = parts.find(p => p.type === "timeZoneName")?.value || "UTC+00:00";
   const m = off.match(/([+-])(\d{2}):?(\d{2})/);
@@ -166,13 +178,16 @@ function offsetStr(timeZone) {
   const mm = String(abs % 60).padStart(2, "0");
   return `UTC${sign}${hh}:${mm}`;
 }
-function isBusinessHours(date, timeZone) {
-  const local = new Date(date.toLocaleString("en-US", { timeZone }));
+function isBusinessHours(dateUTC, timeZone) {
+  const local = new Date(dateUTC.toLocaleString("en-US", { timeZone }));
+  const day = local.getDay();
+  if (day === 0 || day === 6) return false;
   const h = local.getHours() + local.getMinutes() / 60;
-  return h >= 8 && h < 16; // 08:00–15:59
+  return h >= 8 && h < 16;
 }
-
-// minimal fallback if Intl.supportedValuesOf is missing
+function labelFor(zone) {
+  return `${displayCity(zone)} (${zone})`;
+}
 function fallbackTz() {
   return [
     "UTC",
