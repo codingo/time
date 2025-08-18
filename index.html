@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Time Zone Converter</title>
+  <!-- Tailwind CSS via CDN (dark mode first design) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- (Using Tailwind Play CDN for development; for production, consider a self-hosted CSS build) -->
+  <!-- Include Moment.js and Moment-Timezone for time calculations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.40/moment-timezone-with-data.min.js" crossorigin="anonymous"></script>
+  <style>
+    /* Custom scrollbar styling for dark mode (for webkit browsers) */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a2a;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #121212;
+    }
+  </style>
+</head>
+<body class="bg-[#121212] text-gray-100 font-sans">
+  <!-- App Container -->
+  <div class="max-w-xl mx-auto p-4">
+    <!-- Header / Controls -->
+    <div class="flex items-center justify-between mb-4">
+      <!-- Add Location Form -->
+      <form id="addForm" class="flex items-center flex-grow" autocomplete="off">
+        <label for="locationInput" class="sr-only">Add city or time zone</label>
+        <input type="text" id="locationInput" list="cityOptions" placeholder="Add city or time zone..." 
+               class="flex-grow bg-[#1F1F1F] border border-gray-700 text-gray-100 placeholder-gray-500 rounded-md px-3 py-2 
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+               required />
+        <datalist id="cityOptions"><!-- populated by script --></datalist>
+        <button type="submit" class="ml-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          Add
+        </button>
+      </form>
+      <!-- Top bar buttons -->
+      <div class="flex items-center ml-2">
+        <button id="resetTimeBtn" type="button" class="text-gray-400 text-sm hover:text-gray-200 focus:outline-none focus:underline hidden" title="Reset to current time">
+          Current time
+        </button>
+        <button id="removeAllBtn" type="button" class="text-gray-400 text-sm hover:text-gray-200 focus:outline-none focus:underline ml-4" title="Remove all locations">
+          Remove all
+        </button>
+      </div>
+    </div>
+
+    <!-- Time Zones List -->
+    <div id="cityList">
+      <!-- City rows will be injected here -->
+    </div>
+  </div>
+
+  <!-- Set Reference Time Modal -->
+  <div id="timeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-[#1F1F1F] border border-gray-700 rounded-lg p-6 w-80 max-w-xs">
+      <h2 class="text-xl font-semibold text-gray-100 mb-4">Set Reference Time</h2>
+      <label for="dateInput" class="block text-sm text-gray-200 mb-1">Date:</label>
+      <input type="date" id="dateInput" class="w-full mb-3 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <label for="timeInput" class="block text-sm text-gray-200 mb-1">Time:</label>
+      <input type="time" id="timeInput" class="w-full mb-4 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <div class="text-right">
+        <button type="button" class="px-4 py-2 bg-gray-600 text-gray-100 text-sm font-medium rounded hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 mr-2" onclick="closeTimeModal()">
+          Cancel
+        </button>
+        <button type="button" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="applyReferenceTime()">
+          Set
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden template classes for Tailwind (to ensure JIT builds these utilities) -->
+  <div class="hidden">
+    text-green-500 text-red-500 text-gray-100 text-gray-400 text-gray-500 hover:text-gray-300 
+    bg-blue-600 bg-blue-500 bg-gray-600 bg-gray-500 
+    border-gray-700 
+    flex items-center justify-between flex-col sm:flex-row justify-end
+    text-xl text-lg text-sm font-semibold font-normal
+    sr-only
+  </div>
+
+  <!-- JavaScript functionality -->
+  <script>
+    // Data: preset list of popular cities/time zones for suggestions
+    const knownLocations = [
+      { name: "Los Angeles, USA (PT)", tz: "America/Los_Angeles" },
+      { name: "New York, USA (ET)", tz: "America/New_York" },
+      { name: "London, UK", tz: "Europe/London" },
+      { name: "New Delhi, India (IST)", tz: "Asia/Kolkata" },
+      { name: "Tokyo, Japan", tz: "Asia/Tokyo" },
+      { name: "Gold Coast, Australia (AEST)", tz: "Australia/Brisbane" },
+      { name: "UTC / GMT", tz: "UTC" }
+    ];
+    let cities = [];           // will hold {name, tz}
+    let autoMode = true;       // true = live current time mode, false = static reference mode
+    let referenceMomentUtc = null; // moment (UTC) of the selected reference time (if static mode)
+
+    // Populate the datalist for city suggestions
+    const datalist = document.getElementById('cityOptions');
+    knownLocations.forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value = loc.name;
+      datalist.appendChild(opt);
+    });
+
+    // Utility: Determine if a given local time in moment `m` is within business hours
+    function isBusinessHours(m) {
+      const hour = m.hour();
+      const day = m.day(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const isWeekday = (day >= 1 && day <= 5);
+      return isWeekday && hour >= 9 && hour < 18;
+    }
+
+    // Utility: Determine if a given local time in moment `m` is during typical sleeping hours
+    function isSleepingHours(m) {
+      const hour = m.hour();
+      return (hour < 6 || hour >= 22); // before 6am or after 10pm
+    }
+
+    // Get appropriate icon HTML for a given moment (smile or sad face SVG)
+    function getTimeIconHTML(m) {
+      let iconType, iconColorClass, iconLabel;
+      if (isBusinessHours(m)) {
+        iconType = 'happy';
+        iconColorClass = 'text-green-500';
+        iconLabel = 'Within business hours';
+      } else {
+        iconType = 'sad';
+        iconColorClass = 'text-red-500';
+        iconLabel = 'Outside business hours';
+      }
+      // SVG paths for heroicons outline emoji happy/sad (24x24)
+      const happyPath = "M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
+      const sadPath   = "M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
+      const pathD = (iconType === 'happy') ? happyPath : sadPath;
+      // Inline SVG (24px) with currentColor stroke (color via Tailwind class)
+      return `<svg class="w-5 h-5 inline ${iconColorClass} no-modal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <title>${iconLabel}</title>
+                <path d="${pathD}" /></svg>`;
+    }
+
+    // Format difference between city time and reference (returns string like "17 hours behind")
+    function formatTimeDifference(cityMoment, refMoment) {
+      if (!refMoment) return ""; // no difference if no reference defined
+      // Compute difference in minutes between city and reference local times for the same UTC moment
+      const diffMinutes = cityMoment.utcOffset() - refMoment.utcOffset();
+      if (diffMinutes === 0) return "";  // same timezone
+      const ahead = diffMinutes > 0;
+      const totalMin = Math.abs(diffMinutes);
+      const hours = Math.floor(totalMin / 60);
+      const mins = totalMin % 60;
+      let diffStr = "";
+      if (hours > 0) {
+        diffStr += hours + " hour" + (hours !== 1 ? "s" : "");
+      }
+      if (mins > 0) {
+        if (diffStr) diffStr += " ";
+        diffStr += mins + " minute" + (mins !== 1 ? "s" : "");
+      }
+      diffStr += ahead ? " ahead" : " behind";
+      return diffStr;
+    }
+
+    // Render the city list UI
+    function renderCityList() {
+      const listEl = document.getElementById('cityList');
+      listEl.innerHTML = "";  // clear current list
+      // Determine the base reference time for calculations:
+      let baseUtc;
+      let refMoment = null;
+      if (autoMode) {
+        baseUtc = moment.utc();  // current time in UTC
+      } else {
+        baseUtc = referenceMomentUtc;  // fixed reference time (already UTC)
+      }
+      // Build each city row
+      cities.forEach((city, index) => {
+        // Calculate local time for this city based on baseUtc
+        const cityMoment = baseUtc.clone().tz(city.tz);
+        // Format date and time components
+        const dateStr = cityMoment.format("ddd, D MMM YYYY");      // e.g. "Fri, 22 Aug 2025"
+        const timeStr = cityMoment.format("h:mm");                // e.g. "9:00"
+        const ampmStr = cityMoment.format("a");                   // e.g. "am" (lowercase)
+        // Time zone abbreviation and UTC offset
+        const tzAbbr = cityMoment.format("z") || city.tz;         // e.g. "AEST"
+        let utcOffsetStr = cityMoment.format("Z");                // e.g. "+10:00"
+        utcOffsetStr = utcOffsetStr.replace(":00", "");           // remove minutes if zero (e.g. "+10")
+        const tzInfoStr = `(${utcOffsetStr === "+0" ? "UTC" : "UTC"}${utcOffsetStr})`;  // "(UTC+10)"
+        // Time difference from first city (reference)
+        let diffStr = "";
+        if (index !== 0) {
+          const firstMoment = baseUtc.clone().tz(cities[0].tz);
+          diffStr = formatTimeDifference(cityMoment, firstMoment);
+        }
+        // Construct HTML for the row
+        const row = document.createElement('div');
+        row.className = "flex flex-col sm:flex-row items-stretch sm:items-start justify-between py-3 border-b border-gray-700";
+        // Left side: City name and tz info
+        row.innerHTML = `
+          <div class="mb-2 sm:mb-0">
+            <div class="font-semibold text-gray-100">${city.name}</div>
+            <div class="text-sm text-gray-400">${tzAbbr} ${tzInfoStr} ${diffStr ? " · " + diffStr : ""}</div>
+          </div>
+          <div class="sm:text-right">
+            <div class="text-sm text-gray-400">${dateStr}</div>
+            <div class="flex items-center justify-start sm:justify-end">
+              <span class="text-xl font-semibold text-gray-100 mr-2">${timeStr} <span class="text-lg font-normal">${ampmStr}</span></span>
+              ${getTimeIconHTML(cityMoment)}
+              <button class="ml-2 text-gray-500 hover:text-gray-300 focus:outline-none no-modal remove-btn" aria-label="Remove ${city.name}" onclick="removeCity(${index}, event)">×</button>
+            </div>
+          </div>
+        `;
+        // Attach click handler on the time area to open modal for setting reference time (if clicked)
+        // We'll use an inline handler via HTML on the containing div:
+        row.querySelector('.flex.items-center').setAttribute('onclick', `handleTimeClick(event, ${index})`);
+        listEl.appendChild(row);
+      });
+    }
+
+    // Event: Add location form submission
+    document.getElementById('addForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const input = document.getElementById('locationInput');
+      let query = input.value.trim();
+      if (!query) return;
+      // Find known location by name
+      const loc = knownLocations.find(loc => loc.name.toLowerCase() === query.toLowerCase());
+      let newCity;
+      if (loc) {
+        newCity = { name: loc.name, tz: loc.tz };
+      } else {
+        // If not found in list, check if query matches a known time zone ID or abbreviation
+        if (moment.tz.zone(query)) {
+          // It's a valid IANA time zone string
+          const parts = query.split("/");
+          let displayName = query;
+          if (parts.length === 2) {
+            // Format "City, Country/Region" from "Region/City"
+            displayName = parts[1].replace('_', ' ') + ", " + parts[0];
+          }
+          newCity = { name: displayName, tz: query };
+        } else {
+          alert("Location not found. Please select a valid city or time zone from the list.");
+          input.focus();
+          return;
+        }
+      }
+      // Add new city to list
+      cities.push(newCity);
+      input.value = "";
+      // Re-render list and maintain the current mode (if static, keep current reference time)
+      renderCityList();
+    });
+
+    // Remove a city by index
+    function removeCity(index, event) {
+      event.stopPropagation(); // prevent triggering parent click (open modal) when removing
+      cities.splice(index, 1);
+      renderCityList();
+    }
+
+    // Remove all cities
+    document.getElementById('removeAllBtn').addEventListener('click', () => {
+      cities = [];
+      renderCityList();
+    });
+
+    // Handle clicking on a time entry (to open the reference time modal)
+    function handleTimeClick(event, index) {
+      // If click originated on an element marked no-modal (icon or remove button), do nothing
+      if (event.target.closest('.no-modal')) return;
+      openTimeModal(index);
+    }
+
+    // Open the Set Reference Time modal for the city at given index
+    function openTimeModal(index) {
+      if (index < 0 || index >= cities.length) return;
+      const city = cities[index];
+      const modal = document.getElementById('timeModal');
+      // If the clicked city is not already the first, make it the first (so it becomes reference)
+      if (index !== 0) {
+        const [removed] = cities.splice(index, 1);
+        cities.unshift(removed);
+        index = 0;
+      }
+      // Prefill date/time fields with that city's current local time (rounded to nearest minute)
+      const now = moment().tz(city.tz);
+      document.getElementById('dateInput').value = now.format("YYYY-MM-DD");
+      document.getElementById('timeInput').value = now.format("HH:mm");
+      // Show the modal
+      modal.classList.remove('hidden');
+      // Prevent background scroll
+      document.body.style.overflow = 'hidden';
+      // Focus the date input for convenience
+      document.getElementById('dateInput').focus();
+      // Store the reference index (which should be 0 now)
+      modal.setAttribute('data-city-index', index);
+    }
+
+    // Close the modal without applying changes
+    function closeTimeModal() {
+      const modal = document.getElementById('timeModal');
+      modal.classList.add('hidden');
+      document.body.style.overflow = ''; // restore scrolling
+      // Return focus to "Current time" or other element for accessibility
+      document.getElementById('resetTimeBtn').focus();
+    }
+
+    // Apply the selected date/time as the new reference time
+    function applyReferenceTime() {
+      const modal = document.getElementById('timeModal');
+      const index = Number(modal.getAttribute('data-city-index'));
+      if (isNaN(index) || !cities[index]) {
+        closeTimeModal();
+        return;
+      }
+      // Get chosen date and time
+      const dateVal = document.getElementById('dateInput').value;
+      const timeVal = document.getElementById('timeInput').value;
+      if (!dateVal || !timeVal) {
+        alert("Please select a valid date and time.");
+        return;
+      }
+      const city = cities[index];
+      // Construct a moment for the chosen local date/time in the city's timezone
+      const selectedMoment = moment.tz(dateVal + " " + timeVal, "YYYY-MM-DD HH:mm", city.tz);
+      if (!selectedMoment.isValid()) {
+        alert("Invalid time input.");
+        return;
+      }
+      // Switch to static mode with this reference time
+      autoMode = false;
+      referenceMomentUtc = selectedMoment.clone().utc();  // store reference time in UTC
+      // Update UI: show "Current time" button (to allow resetting)
+      document.getElementById('resetTimeBtn').classList.remove('hidden');
+      // Re-render list with new reference
+      closeTimeModal();
+      renderCityList();
+    }
+
+    // Reset back to live current time mode
+    function resetTime() {
+      autoMode = true;
+      referenceMomentUtc = null;
+      // Hide the reset button
+      document.getElementById('resetTimeBtn').classList.add('hidden');
+      // Re-render immediately and resume live updates
+      renderCityList();
+    }
+    document.getElementById('resetTimeBtn').addEventListener('click', resetTime);
+
+    // Listen for Escape key to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === "Escape" && !document.getElementById('timeModal').classList.contains('hidden')) {
+        closeTimeModal();
+      }
+    });
+
+    // Live update interval (update times every minute when in auto mode)
+    setInterval(() => {
+      if (autoMode) {
+        renderCityList();
+      }
+    }, 60000);
+
+    // Initial setup: add user’s local time zone and UTC as default entries for convenience
+    (function initDefaultCities() {
+      try {
+        const guessedTz = moment.tz.guess();
+        if (guessedTz) {
+          // Format guess into "City, Region" form if possible
+          let displayName = guessedTz;
+          const parts = guessedTz.split("/");
+          if (parts.length === 2) {
+            displayName = parts[1].replace(/_/g, " ") + ", " + parts[0];
+          }
+          cities.push({ name: displayName, tz: guessedTz });
+        }
+      } catch(err) {
+        console.warn("Timezone guess failed, using UTC only.");
+      }
+      cities.push({ name: "UTC", tz: "UTC" });
+      renderCityList();
+    })();
+  </script>
+</body>
+</html>
