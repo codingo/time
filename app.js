@@ -11,41 +11,122 @@ const inputEl = document.getElementById("zone-input");
 const datalistEl = document.getElementById("tzlist");
 const addBtn = document.getElementById("add-zone");
 
+// Trianglify canvases
+const triA = document.getElementById("tri-a");
+const triB = document.getElementById("tri-b");
+
 let zones = [];           // [{ row, label, datetime, removeBtn, zoneName, displayLabel }]
 let tzData = [];          // loaded from timezones.json
 let tzIndex = null;       // lookup maps
-let sharedInstant = null; // single UTC instant for the whole view
+let sharedInstant = null; // single UTC instant
+let activeCanvas = triA;  // for cross-fade
+let nextCanvas   = triB;
 
-// Boot inside an async IIFE (avoids top-level await issues on older browsers)
+// ---- Trianglify background ----
+const palettes = [
+  ["#0f172a","#1e293b","#334155","#0ea5e9","#22d3ee"], // slate → cyan
+  ["#0b1324","#1b3a4b","#2e5c6e","#34d399","#22d3ee"], // teal mix
+  ["#10002b","#240046","#3c096c","#5a189a","#00d4ff"], // violet → aqua
+  ["#0a0f1f","#14213d","#1f2937","#3b82f6","#a78bfa"]  // indigo/blue
+];
+let paletteIndex = 0;
+
+function sizeCanvas(c){
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  c.width  = Math.floor(window.innerWidth  * dpr);
+  c.height = Math.floor(window.innerHeight * dpr);
+  c.style.width  = "100vw";
+  c.style.height = "100vh";
+}
+
+function renderTrianglify(target, colors){
+  if (!window.trianglify) return; // safety if CDN blocked
+  sizeCanvas(target);
+  // Randomize a bit each draw to create motion
+  const cell = 90 + Math.random() * 40;
+  const varFactor = 0.75;
+  const seed = Math.floor(Math.random() * 1e9);
+
+  const pattern = window.trianglify({
+    width: target.width,
+    height: target.height,
+    cellSize: cell,
+    variance: varFactor,
+    seed,
+    xColors: colors,
+    colorFunction: window.trianglify.colorFunctions.interpolateLinear(colors)
+  });
+
+  const ctx = target.getContext("2d");
+  ctx.clearRect(0,0,target.width,target.height);
+  pattern.toCanvas(target);
+}
+
+function swapLayers(){
+  // draw on the "next" canvas, then cross-fade it in
+  paletteIndex = (paletteIndex + 1) % palettes.length;
+  renderTrianglify(nextCanvas, palettes[paletteIndex]);
+
+  // choose drift variant
+  nextCanvas.classList.toggle("drift-a", Math.random() > 0.5);
+  nextCanvas.classList.toggle("drift-b", !nextCanvas.classList.contains("drift-a"));
+
+  // cross-fade
+  nextCanvas.classList.add("active");
+  activeCanvas.classList.remove("active");
+
+  // swap references
+  const tmp = activeCanvas;
+  activeCanvas = nextCanvas;
+  nextCanvas = tmp;
+}
+
+function startTrianglify(){
+  // initial two frames so the first fade looks continuous
+  renderTrianglify(activeCanvas, palettes[paletteIndex]);
+  activeCanvas.classList.add("active","drift-a");
+  paletteIndex = (paletteIndex + 1) % palettes.length;
+  renderTrianglify(nextCanvas, palettes[paletteIndex]);
+  nextCanvas.classList.remove("active");
+  nextCanvas.classList.add("drift-b");
+
+  // cycle every 10s with gentle fade (CSS handles the 2.2s transition)
+  setInterval(swapLayers, 10000);
+}
+
+window.addEventListener("resize", () => {
+  sizeCanvas(activeCanvas);
+  sizeCanvas(nextCanvas);
+  // redraw current to maintain crispness after resize
+  renderTrianglify(activeCanvas, palettes[paletteIndex]);
+});
+
+// ---- App boot ----
 (async function init(){
+  // start background first for immediate visual parity with codingo.com
+  startTrianglify();
+
   await loadTimezoneData();
 
-  // Read query params robustly
   const params = new URLSearchParams(location.search);
   const zonesParam = params.get("zones");
   const timeParam  = params.get("time");
 
   const startupZones = (zonesParam && zonesParam.split(",").filter(Boolean)) || DEFAULT_ZONES.slice();
-  // If time is an ISO with Z, use it; otherwise treat as wall time in the first zone
+
   sharedInstant = timeParam
     ? (timeParam.endsWith("Z") ? new Date(timeParam) : parseWallAsInstant(timeParam, startupZones[0]))
     : new Date();
 
-  // Build UI
   startupZones.forEach(z => addZone(z, sharedInstant));
   paintAll();
 
-  // Pre-populate suggestions on focus
   inputEl.addEventListener("focus", () => {
-    renderSuggestions(suggest("", 25)); // top items when empty
+    renderSuggestions(suggest("", 25));
   });
-
-  // Live suggestions
   inputEl.addEventListener("input", () => {
     renderSuggestions(suggest(inputEl.value.trim(), 50));
   });
-
-  // Add btn
   addBtn.addEventListener("click", () => {
     const zone = resolveToZone(inputEl.value) || inputEl.value.trim();
     if (!zone) return;
@@ -74,7 +155,6 @@ async function loadTimezoneData(){
     if (!res.ok) throw new Error("fetch failed");
     tzData = await res.json();
   }catch{
-    // Minimal fallback keeps app usable if file is missing
     tzData = [
       { label:"Gold Coast", zone:"Australia/Brisbane", aliases:["Brisbane","QLD","Sunshine Coast","AEST (no DST)"] },
       { label:"Sydney", zone:"Australia/Sydney", aliases:["NSW","AEDT","AEST","Canberra","New South Wales"] },
@@ -102,7 +182,6 @@ function resolveToZone(input){
   if (tzIndex.byLabel.has(q)) return tzIndex.byLabel.get(q).zone;
   if (tzIndex.byAlias.has(q)) return tzIndex.byAlias.get(q).zone;
   if (tzIndex.byZone.has(input)) return input; // exact IANA typed
-  // Fuzzy
   const tokens = q.split(" ");
   const best = tzData
     .map(rec => {
@@ -118,7 +197,6 @@ function resolveToZone(input){
 }
 
 function suggest(q, limit=50){
-  // Empty query: return a curated top list
   if (!q) return tzData.slice(0, limit);
   const n = normalize(q), tokens = n.split(" ");
   return tzData
@@ -168,21 +246,17 @@ function addZone(zoneName, instant) {
   const record = { row, label, datetime, removeBtn, zoneName, displayLabel };
   zones.push(record);
 
-  // Zone change
   label.addEventListener("change", () => {
     const typed = label.value.trim();
     const resolvedZone = resolveToZone(typed) || typed;
     record.zoneName = resolvedZone;
-
     const dbRec = tzIndex.byLabel.get(normalize(typed)) || tzIndex.byAlias.get(normalize(typed));
     record.displayLabel = dbRec ? dbRec.label : typed;
     label.value = record.displayLabel;
-
     paintRow(record, sharedInstant);
     updateURL();
   });
 
-  // Time change → recompute shared instant, repaint all
   const onTimeEdit = () => {
     const v = datetime.value;
     if (!isValidDateTimeLocal(v)) return;
@@ -193,7 +267,6 @@ function addZone(zoneName, instant) {
   datetime.addEventListener("input", onTimeEdit);
   datetime.addEventListener("change", onTimeEdit);
 
-  // Remove
   removeBtn.addEventListener("click", () => {
     row.remove();
     zones = zones.filter(z => z !== record);
@@ -201,7 +274,6 @@ function addZone(zoneName, instant) {
     updateURL();
   });
 
-  // Initial paint
   paintRow(record, instant);
 }
 
@@ -219,17 +291,13 @@ function paintAll(){
 
 function updateURL() {
   const p = new URLSearchParams();
-  if (zones[0]) {
-    // store both: human-readable wall time + canonical UTC to be robust
-    p.set("time", zones[0].datetime.value);
-  }
+  if (zones[0]) p.set("time", zones[0].datetime.value);
   p.set("zones", zones.map(z => z.zoneName).join(","));
   history.replaceState(null, "", `?${p.toString()}`);
 }
 
 // ----- parsing helpers -----
 function parseWallAsInstant(inputValue, zone){
-  // input "yyyy-MM-ddTHH:mm" as wall time in 'zone' -> UTC instant
   const [datePart, timePart] = inputValue.split("T");
   const [y, m, d] = datePart.split("-").map(Number);
   const [H, Min] = timePart.split(":").map(Number);
