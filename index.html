@@ -28,11 +28,38 @@
                placeholder="Add a timezone: e.g., Gold Coast, San Fr, London, Tokyo, PT…" />
         <datalist id="tzlist"></datalist>
         <button id="add-zone" class="btn-codingo" title="Add selected timezone">+ Add timezone</button>
+        <button id="remove-all" class="btn-ghost" title="Remove all timezones">Remove all</button>
       </div>
+
+      <div class="sort-wrap">
+        <label for="sort-select">Sort by</label>
+        <select id="sort-select">
+          <option value="custom">-- Custom --</option>
+          <option value="city-asc">↑ City (asc.)</option>
+          <option value="city-desc">↓ City (desc.)</option>
+          <option value="country-asc">↑ Country (asc.)</option>
+          <option value="country-desc">↓ Country (desc.)</option>
+          <option value="time-asc">↑ Time (asc.)</option>
+          <option value="time-desc">↓ Time (desc.)</option>
+        </select>
+      </div>
+
       <p class="shareable">Shareable links by copying the current URL</p>
     </div>
 
     <div id="zones"></div>
+
+    <section class="permalink">
+      <h2 class="sr-only">Shareable Permalink</h2>
+      <div class="permalink-row">
+        <select id="permalink-mode" title="Time to use in the link">
+          <option value="selected">Use selected time</option>
+          <option value="now">Use now</option>
+        </select>
+        <input id="permalink-url" readonly />
+        <button id="copy-link" class="btn-codingo" title="Copy to clipboard">Copy</button>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -51,6 +78,28 @@
       </a>
     </nav>
   </footer>
+
+  <!-- Modal: Edit Date & Time -->
+  <dialog id="edit-dialog">
+    <form method="dialog" class="edit-card">
+      <div class="edit-header">
+        <span id="edit-city" class="edit-city">City</span>
+        <span id="edit-face" class="face">🙂</span>
+      </div>
+      <div class="edit-row">
+        <label>Set date</label>
+        <input id="edit-date" type="date" />
+      </div>
+      <div class="edit-row">
+        <label>Set time</label>
+        <input id="edit-time" type="time" step="60" />
+      </div>
+      <div class="edit-actions">
+        <button id="edit-close" class="btn-ghost">Close</button>
+        <button id="edit-apply" class="btn-codingo">Apply</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- Trianglify (bundled UMD) -->
   <script src="https://unpkg.com/trianglify@4/dist/trianglify.bundle.js"></script>
