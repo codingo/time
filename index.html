@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Animated gradient background layer (behind everything) -->
-  <div class="bg-anim" aria-hidden="true"></div>
+  <!-- Triangulated animated background (two canvases for cross-fade) -->
+  <canvas id="tri-a" class="tri-layer" aria-hidden="true"></canvas>
+  <canvas id="tri-b" class="tri-layer" aria-hidden="true"></canvas>
 
   <header class="site-header">
     <a href="https://codingo.com" class="logo-link" target="_blank" rel="noopener">
@@ -51,7 +52,9 @@
     </nav>
   </footer>
 
-  <!-- ES modules -->
+  <!-- Trianglify (bundled UMD) -->
+  <script src="https://unpkg.com/trianglify@4/dist/trianglify.bundle.js"></script>
+  <!-- App -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
