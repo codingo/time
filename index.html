@@ -8,18 +8,16 @@
   <meta name="color-scheme" content="dark">
 </head>
 <body>
-  <!-- Animated background -->
   <div class="bg-anim"></div>
 
   <header class="wrap header">
     <a class="brand" href="https://codingo.com" target="_blank" rel="noopener">
-      <img src="assets/codingo-logo.svg" alt="codingo" class="logo">
+      <img src="assets/codingo-logo-animated.svg" alt="codingo" class="logo">
       <span class="brand-text">codingo</span>
     </a>
   </header>
 
   <main class="wrap column">
-    <!-- Picker card -->
     <section class="picker card">
       <h2>Add a timezone</h2>
       <input id="tzSearch" class="input" placeholder="Add city/zone (e.g., Brisbane, San Francisco, PT, America/Los_Angeles)" />
@@ -29,26 +27,22 @@
         <button id="removeAllBtn" class="btn ghost">Remove all</button>
       </div>
       <p class="tiny muted">Tip: click any row’s date or time to edit in that timezone – all others update instantly.</p>
-
-      <!-- Prominent socials like homepage -->
-      <div class="social-block">
-        <a class="social-btn" href="https://www.linkedin.com/in/skeltonm/" target="_blank" rel="noopener">LinkedIn</a>
-        <a class="social-btn" href="https://x.com/codingo_" target="_blank" rel="noopener">X (Twitter)</a>
-        <a class="social-btn" href="https://github.com/codingo/" target="_blank" rel="noopener">GitHub</a>
-        <a class="social-btn" href="https://youtube.com/codingo" target="_blank" rel="noopener">YouTube</a>
-      </div>
     </section>
 
-    <!-- List -->
     <section class="list">
       <h3 class="section-title">Selected timezones</h3>
       <ul id="list" class="zones"></ul>
     </section>
   </main>
 
-  <footer class="wrap tiny footer">
-    <span class="emph">Rows are coloured by local business hours (green = good, red = not ideal)</span>
-    <span class="emph">Shareable links by copying the current URL</span>
+  <footer class="wrap footer">
+    <div class="share emph">Shareable links <span class="muted">by copying the current URL</span></div>
+    <div class="social-block">
+      <a class="social-btn" href="https://www.linkedin.com/in/skeltonm/" target="_blank" rel="noopener">LinkedIn</a>
+      <a class="social-btn" href="https://x.com/codingo_" target="_blank" rel="noopener">X (Twitter)</a>
+      <a class="social-btn" href="https://github.com/codingo/" target="_blank" rel="noopener">GitHub</a>
+      <a class="social-btn" href="https://youtube.com/codingo" target="_blank" rel="noopener">YouTube</a>
+    </div>
   </footer>
 
   <script src="aliases.js"></script>
