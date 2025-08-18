@@ -1,7 +1,4 @@
-// Utility helpers kept separate for clarity
-
 export function toTimeZone(date, zone) {
-  // Create a Date that represents the same wall time in the given zone
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: zone, hour12: false,
     year: "numeric", month: "2-digit", day: "2-digit",
@@ -27,12 +24,11 @@ export function isBusinessHours(date, zone) {
   return h >= 8 && h < 16;
 }
 
-// Simple normalize and token-ordered search (for “san fr” → “san … francisco”)
 export function normalize(s){
   return s.toLowerCase().replace(/[_/,-]/g," ").replace(/\s+/g," ").trim();
 }
+
 export function tokensOrderedMatch(qTokens, hay){
-  // qTokens: ["san","fr"]  hay: "san francisco ..."
   let lastIdx = 0;
   for (const t of qTokens){
     const idx = hay.indexOf(t, lastIdx);
