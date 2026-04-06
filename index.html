@@ -102,12 +102,16 @@ button{font-family:var(--sans);cursor:pointer}
 
 .city-list{display:flex;flex-direction:column;gap:5px}
 
-.city-row{display:grid;grid-template-columns:26px 30px 1fr auto 10px;align-items:center;gap:10px 10px;padding:12px 12px 12px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);position:relative;transition:border-color 0.12s,background 0.12s,opacity 0.15s,transform 0.1s;cursor:default}
+.city-row{display:grid;grid-template-columns:26px 30px 1fr auto 10px;align-items:center;gap:10px 10px;padding:12px 12px 12px 10px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border-mid);border-radius:var(--rad);position:relative;transition:border-color 0.12s,background 0.12s,opacity 0.15s,transform 0.1s;cursor:default}
 .city-row:hover{background:var(--surface2);border-color:var(--border-mid)}
 .city-row:hover .rm-btn{opacity:1}
 .city-row:hover .drag-handle{opacity:0.5}
 .city-row.dragging{opacity:0.35;transform:scale(0.98)}
 .city-row.drag-over{border-color:var(--accent);border-style:dashed}
+/* Status left-border — replaces old is-ref green border */
+.city-row.status-working{border-left-color:rgba(61,220,132,0.6)}
+.city-row.status-shoulder{border-left-color:rgba(240,165,0,0.5)}
+.city-row.status-sleeping{border-left-color:rgba(58,69,96,0.5)}
 
 .drag-handle{opacity:0;cursor:grab;display:flex;flex-direction:column;gap:3px;padding:2px 3px;transition:opacity 0.12s;align-self:center}
 .drag-handle span{display:block;width:14px;height:1.5px;background:var(--text2);border-radius:1px}
@@ -150,7 +154,8 @@ button{font-family:var(--sans);cursor:pointer}
 .rm-btn{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--text3);font-size:14px;line-height:1;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:4px;opacity:0;transition:opacity 0.12s,color 0.1s,background 0.1s}
 .rm-btn:hover{color:var(--red);background:rgba(248,113,113,0.1)}
 
-.city-row.is-ref{border-left:2px solid rgba(61,220,132,0.35)}
+/* is-ref: slightly stronger green left border on reference row */
+.city-row.is-ref.status-working{border-left-color:var(--green)}
 
 /* Reduced-motion: stop decorative animations */
 @media(prefers-reduced-motion:reduce){
@@ -976,19 +981,56 @@ const TZ_ABBR={
   'nst':'America/St_Johns',
 };
 
+// Human-readable names for timezone abbreviations (shown in dropdown + city row)
+const TZ_ABBR_NAME={
+  'pst':'Pacific Standard Time','pdt':'Pacific Daylight Time','pt':'Pacific Time','pacific':'Pacific Time',
+  'mst':'Mountain Standard Time','mdt':'Mountain Daylight Time','mt':'Mountain Time','mountain':'Mountain Time',
+  'cst':'Central Standard Time','cdt':'Central Daylight Time','ct':'Central Time','central':'Central Time',
+  'est':'Eastern Standard Time','edt':'Eastern Daylight Time','et':'Eastern Time','eastern':'Eastern Time',
+  'ast':'Atlantic Standard Time','adt':'Atlantic Daylight Time','atlantic':'Atlantic Time',
+  'akst':'Alaska Standard Time','akdt':'Alaska Daylight Time','alaska':'Alaska Time',
+  'hst':'Hawaii Standard Time','hawaii':'Hawaii Time',
+  'gmt':'Greenwich Mean Time','utc':'UTC / GMT','bst':'British Summer Time',
+  'cet':'Central European Time','cest':'Central European Summer Time',
+  'ist':'India Standard Time','india':'India Time',
+  'jst':'Japan Standard Time','japan':'Japan Time',
+  'aest':'AUS Eastern Standard Time','aedt':'AUS Eastern Daylight Time','aet':'Australian Eastern Time',
+  'awst':'Australian Western Time','acst':'AUS Central Standard Time','acdt':'AUS Central Daylight Time',
+  'nzst':'New Zealand Standard Time','nzdt':'New Zealand Daylight Time','nzt':'New Zealand Time',
+  'sgt':'Singapore Time','singapore':'Singapore Time',
+  'hkt':'Hong Kong Time','kst':'Korea Standard Time',
+  'gst':'Gulf Standard Time','msk':'Moscow Time',
+  'eat':'East Africa Time','wat':'West Africa Time','cat':'Central Africa Time',
+  'eet':'Eastern European Time','wib':'Western Indonesia Time',
+};
+
 function doSearch(q){
   if(!q.trim())return[];
   const lq=q.toLowerCase().replace(/[''`]/g,'').trim();
   const seen=new Set();
-
-  // Check if query exactly matches a known abbreviation → boost those IANA zones to top
   const abbrTz=TZ_ABBR[lq];
 
-  return DB.filter(c=>{
+  // When query exactly matches an abbreviation, prepend a synthetic "PST" selectable entry
+  const synthetic=[];
+  if(abbrTz&&TZ_ABBR_NAME[lq]){
+    const primaryCity=DB.find(c=>c.tz===abbrTz);
+    if(primaryCity){
+      synthetic.push({
+        n:lq.toUpperCase(),
+        c:TZ_ABBR_NAME[lq],
+        cc:primaryCity.cc,
+        tz:abbrTz,
+        p:9999999,
+        _abbr:true
+      });
+      seen.add(abbrTz+':'+lq.toUpperCase()); // prevent exact-tz dedup removing it
+    }
+  }
+
+  const cities=DB.filter(c=>{
     const k=c.n+c.tz;if(seen.has(k))return false;seen.add(k);
     const nl=c.n.toLowerCase(),cl=c.c.toLowerCase();
     const tl=c.tz.toLowerCase().replace(/_/g,' ').replace(/\//g,' ');
-    // Also search against city's own abbreviation at current refMs
     const abbr=tzAbbr(c.tz,S.refMs).toLowerCase();
     if(abbrTz)return c.tz===abbrTz||c.tz.startsWith(abbrTz);
     return nl.includes(lq)||cl.includes(lq)||tl.includes(lq)||abbr.includes(lq);
@@ -996,7 +1038,9 @@ function doSearch(q){
     const ae=a.n.toLowerCase()===lq?0:a.n.toLowerCase().startsWith(lq)?1:2;
     const be=b.n.toLowerCase()===lq?0:b.n.toLowerCase().startsWith(lq)?1:2;
     if(ae!==be)return ae-be;return b.p-a.p;
-  }).slice(0,8);
+  }).slice(0,synthetic.length?7:8);
+
+  return [...synthetic,...cities];
 }
 function renderAC(){
   const res=S.acRes;if(!res.length){acEl.classList.add('hidden');return}
@@ -1314,7 +1358,7 @@ function renderList(){
     const rel=i>0&&refTz?relOffset(refTz,city.tz,S.refMs):'';
     const tVal=localTimeStr(city.tz,S.refMs);
     const h0=city.h0??DEF_H0, h1=city.h1??DEF_H1;
-    const rowCls='city-row'+(i===0?' is-ref':'')+(wknd?' weekend':'')+(holiday?' holiday':'');
+    const rowCls='city-row status-'+status+(i===0?' is-ref':'')+(wknd?' weekend':'')+(holiday?' holiday':'');
     return`<div class="${rowCls}">
       <div class="drag-handle" tabindex="-1"><span></span><span></span><span></span></div>
       <div class="row-flag">${flag(city.cc)}</div>
@@ -1357,8 +1401,11 @@ function renderList(){
     const mins=+e.target.value;
     if(isNaN(mins)||!S.zones[idx])return;
     S.zones[idx][field]=mins;
-    _olWins=null; // invalidate overlap cache
-    syncURL();render();
+    _olWins=null;
+    syncURL();
+    // Defer render by one tick so the select's new value is fully committed
+    // and the live timer doesn't race with this update
+    setTimeout(render,0);
   }
   listEl.querySelectorAll('.hours-sel').forEach(sel=>sel.addEventListener('change',handleHours));
 
@@ -1401,184 +1448,184 @@ loadURL();render();if(S.isLive)setLive(true);
 </script>
 
 <script>
-// ── Flat Surface Shader — low-poly animated background ────────────────────
-// Inspired by FSS.js (Matthew Wagerfield, MIT). Self-contained implementation.
-// Colour palette tuned to match codingo.com (dark + green accent).
+// ── Flat Surface Shader — faithful port of codingo.com FSS ────────────────
+// Source: /js/codingo.js + /js/fss.min.js  (both read directly from codingo.com)
+//
+// MESH config:  width:1.4, height:1.8, depth:10, segments:sqrt(W)/2.5, slices:sqrt(H)/1.5
+//               xRange:0.23, yRange:0.24, zRange:1, ambient:"#100089", diffuse:"#FFFFFF"
+//               speed:4e-4
+// Light:        new FSS.Light("#880066","#c80404") → ambient="#880066" rgb(136,0,102)
+//               setPosition(W/2.4, H/2.4, 300)  — STATIC (never updated in animate loop)
+// Animate loop: ox=sin, oy=cos, oz=sin; pos = anchor + (xRange*segW*ox, yRange*segH*oy, offset*oz−offset)
+//               z ∈ [−depth, 0] always ≤ 0
+// Color eq:     triangle.color = mesh.ambient×light.ambient + mesh.diffuse×light.diffuse×illuminance
+//             = (16,0,137)×(136,0,102)/255 + sh×illuminance
+//             = rgb(8.5,0,54.8) + sh×illuminance
 (function(){
   const canvas=document.getElementById('fss-canvas');
   const ctx=canvas.getContext('2d');
 
-  // Config
-  const COLS=12, ROWS=8;
-  const BG='#0b0d0f';
-  const AMBIENT=0.22;
-  const DIFFUSE_MAX=0.62;
-  const DEPTH=80;
-  const LIGHT_SPEED=0.0007;
-  // Colour cycle: full 0→360 hue rotation matching codingo.com exactly.
-  // codingo uses: step += 360 * 2e-4 per frame, HSL(step, 96%, 40%)
-  let _hue=152; // start at codingo-green, but will rotate through full spectrum
-  const HUE_STEP=360*2e-4; // 0.072°/frame = full cycle in ~83s at 60fps
+  // ── Verified codingo.com values ───────────────────────────────────────────
+  const LIGHT_SPEED = 4e-4;
+  const X_RANGE=0.23, Y_RANGE=0.24, Z_RANGE=1.0;
+  const MESH_W=1.4, MESH_H=1.8;
+  const DEPTH=10, OFFSET=DEPTH/2;  // vertex z ∈ [−10, 0]
 
-  // HSL→RGB — used every frame to compute shifted light colour
+  // mesh.ambient("#100089") × light.ambient("#880066") — the FSS ambient product
+  // = rgb(16×136/255, 0×0/255, 137×102/255) = rgb(8.5, 0, 54.8)
+  const AMB_R = 16*136/255, AMB_G = 0, AMB_B = 137*102/255;
+
+  // light z=300 — same unit as vertex x,y canvas pixels
+  const LIGHT_Z = 300;
+  const BG='#0b0d0f';
+
+  let _hue=152;
+  const HUE_STEP=360*2e-4; // full 0→360° per ~83 s at 60fps
+
   function hsl2rgb(h,s,l){
     s/=100;l/=100;
-    const k=n=>(n+h/30)%12;
-    const a=s*Math.min(l,1-l);
+    const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l);
     const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
     return[Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
   }
 
-  // On touch devices throttle to ~30fps — decorative bg doesn't need 60
   const isMobile=window.matchMedia('(hover:none)').matches;
-  const FRAME_MS=isMobile?33:0;   // 0 = unlimited (native RAF)
+  const FRAME_MS=isMobile?33:0;
 
-  let W,H,verts=[],tris=[],lightX,lightY,lightZ=220;
+  let W,H,COLS,ROWS,verts=[],tris=[],lightX,lightY;
   let lastFrameMs=0,running=true;
 
-  // Resize — rebuild grid
   function resize(){
     W=canvas.width=window.innerWidth;
     H=canvas.height=window.innerHeight;
+    // dynamic grid — codingo: segments=√W/2.5 (cols), slices=√H/1.5 (rows)
+    COLS=Math.max(8,Math.round(Math.sqrt(W)/2.5));
+    ROWS=Math.max(6,Math.round(Math.sqrt(H)/1.5));
+    // static light — codingo: setPosition(W/2.4, H/2.4, 300)
+    lightX=W/2.4; lightY=H/2.4;
     buildMesh();
   }
 
   function buildMesh(){
     verts=[];tris=[];
-    const cw=W/(COLS-1), ch=H/(ROWS-1);
-    for(let r=0;r<ROWS;r++){
-      for(let c=0;c<COLS;c++){
+    // Mesh centered on canvas, extends MESH_W× wide (20% overhang each side)
+    // and MESH_H× tall (40% overhang top/bottom) — no black edges at viewport edges
+    const startX=W*(1-MESH_W)/2, startY=H*(1-MESH_H)/2;
+    const cw=W*MESH_W/(COLS-1), ch=H*MESH_H/(ROWS-1);
+    for(let r=0;r<ROWS;r++)
+      for(let c=0;c<COLS;c++)
         verts.push({
-          ox:c*cw, oy:r*ch,
+          ox:startX+c*cw, oy:startY+r*ch,
           x:0,y:0,z:0,
-          // random phase per vertex for organic motion
-          px:Math.random()*Math.PI*2,
-          py:Math.random()*Math.PI*2,
-          pz:Math.random()*Math.PI*2,
-          sx:(Math.random()*0.4+0.6)*LIGHT_SPEED*1800,
-          sy:(Math.random()*0.4+0.6)*LIGHT_SPEED*1600,
-          sz:(Math.random()*0.4+0.6)*LIGHT_SPEED*2000,
+          t:Math.random()*Math.PI*2,           // vertex.time: random phase
+          s:[                                    // vertex.step[0..2]: random speed per axis
+            Math.random()*0.8+0.2,             // range [0.2, 1.0] matching FSS.Plane
+            Math.random()*0.8+0.2,
+            Math.random()*0.8+0.2
+          ]
         });
-      }
-    }
-    // Build triangles from grid
-    for(let r=0;r<ROWS-1;r++){
+    for(let r=0;r<ROWS-1;r++)
       for(let c=0;c<COLS-1;c++){
-        const tl=r*COLS+c, tr=tl+1, bl=tl+COLS, br=bl+1;
-        tris.push([tl,tr,bl]);
-        tris.push([tr,br,bl]);
+        const tl=r*COLS+c,tr=tl+1,bl=tl+COLS,br=bl+1;
+        tris.push([tl,tr,bl],[tr,br,bl]);
       }
+  }
+
+  function animVerts(ms){
+    // Exact codingo formula (from /js/codingo.js animate function):
+    //   ox = sin(time + step[0]*now*speed)
+    //   oy = cos(time + step[1]*now*speed)   ← cos not sin
+    //   oz = sin(time + step[2]*now*speed)
+    //   x  = anchor.x + xRange*(W/COLS)*ox   (segW = geometry.width/slices, scaled to pixels)
+    //   y  = anchor.y + yRange*(H/ROWS)*oy
+    //   z  = zRange*offset*oz − offset        ← always ≤ 0, range [−depth, 0]
+    const sp=LIGHT_SPEED, segW=W/COLS, segH=H/ROWS;
+    for(const v of verts){
+      const ox=Math.sin(v.t+v.s[0]*ms*sp);
+      const oy=Math.cos(v.t+v.s[1]*ms*sp);
+      const oz=Math.sin(v.t+v.s[2]*ms*sp);
+      v.x=v.ox+X_RANGE*segW*ox;
+      v.y=v.oy+Y_RANGE*segH*oy;
+      v.z=Z_RANGE*OFFSET*oz-OFFSET;
     }
   }
 
-  // Lerp a vertex displacement over time
-  function animVerts(ms){
-    const t=ms*LIGHT_SPEED;
-    verts.forEach(v=>{
-      v.x=v.ox + Math.sin(t*v.sx+v.px)*DEPTH*0.6;
-      v.y=v.oy + Math.sin(t*v.sy+v.py)*DEPTH*0.45;
-      v.z=        Math.sin(t*v.sz+v.pz)*DEPTH;
-    });
-  }
-
-  // Light position orbits in a slow Lissajous path — matches codingo motion
-  function lightPos(ms){
-    const t=ms*LIGHT_SPEED;
-    lightX=W*0.5 + W*0.4*Math.sin(t*1.3);
-    lightY=H*0.5 + H*0.3*Math.cos(t*0.9);
-  }
-
-  // Normal of triangle (for lighting)
   function triNormal(a,b,c){
-    const ax=b.x-a.x, ay=b.y-a.y, az=b.z-a.z;
-    const bx=c.x-a.x, by=c.y-a.y, bz=c.z-a.z;
-    const nx=ay*bz-az*by, ny=az*bx-ax*bz, nz=ax*by-ay*bx;
-    const len=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
-    return[nx/len,ny/len,nz/len];
+    const ax=b.x-a.x,ay=b.y-a.y,az=b.z-a.z;
+    const bx=c.x-a.x,by=c.y-a.y,bz=c.z-a.z;
+    const nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
+    const l=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+    return[nx/l,ny/l,nz/l];
   }
 
-  // Centroid of triangle
-  function centroid(a,b,c){
-    return[(a.x+b.x+c.x)/3,(a.y+b.y+c.y)/3,(a.z+b.z+c.z)/3];
+  function illuminance(n,cx,cy,cz){
+    // light.ray = normalize(light.position − centroid)
+    const dx=lightX-cx,dy=lightY-cy,dz=LIGHT_Z-cz;
+    const l=Math.sqrt(dx*dx+dy*dy+dz*dz)||1;
+    // illuminance = dot(triangle.normal, light.ray), clamped to [0,1]
+    return Math.max(0,n[0]*dx/l+n[1]*dy/l+n[2]*dz/l);
   }
 
-  // Diffuse lighting — dot product of normal with light direction
-  function diffuse(norm,cx,cy,cz){
-    const dx=lightX-cx, dy=lightY-cy, dz=lightZ-cz;
-    const len=Math.sqrt(dx*dx+dy*dy+dz*dz)||1;
-    return Math.max(0,norm[0]*dx/len+norm[1]*dy/len+norm[2]*dz/len);
-  }
-
-  // Map diffuse 0..1 to a colour in the codingo palette
-  // Dark polygons: near-black dark-green/navy
-  // Bright polygons: green accent highlight
-  function triColor(d,sh){
-    const total=Math.min(1,AMBIENT+d*DIFFUSE_MAX);
-    const sr=[9,11,14];
+  // Exact FSS color equation from fss.min.js:
+  //   slave = mesh.ambient × light.ambient  →  add to triangle.color  (ambient)
+  //   slave = mesh.diffuse × light.diffuse × illuminance  →  add to triangle.color  (diffuse)
+  // mesh.ambient="#100089", light.ambient="#880066":  product = rgb(8.5, 0, 54.8)
+  // mesh.diffuse="#FFFFFF", light.diffuse=sh:          product = sh × illuminance
+  function triColor(ill,sh){
     return[
-      Math.min(255,Math.round(sr[0]+(sh[0]-sr[0])*total)),
-      Math.min(255,Math.round(sr[1]+(sh[1]-sr[1])*total)),
-      Math.min(255,Math.round(sr[2]+(sh[2]-sr[2])*total))
+      Math.min(255,Math.round(AMB_R + sh[0]*ill)),
+      Math.min(255,Math.round(AMB_G + sh[1]*ill)),
+      Math.min(255,Math.round(AMB_B + sh[2]*ill))
     ];
   }
 
   function draw(ms){
     animVerts(ms);
-    lightPos(ms);
-    _hue=(_hue+HUE_STEP)%360; // full-spectrum rotation matching codingo's 360*2e-4/frame
-    const sh=hsl2rgb(_hue,96,40); // HSL(hue, 96%, 40%) — exact codingo params
+    _hue=(_hue+HUE_STEP)%360;
+    const sh=hsl2rgb(_hue,96,40); // HSL(hue,96%,40%) — exact codingo diffuse color
     ctx.fillStyle=BG;
     ctx.fillRect(0,0,W,H);
-    tris.forEach(([ai,bi,ci])=>{
+    for(const [ai,bi,ci] of tris){
       const a=verts[ai],b=verts[bi],c=verts[ci];
-      const norm=triNormal(a,b,c);
-      const [cx,cy,cz]=centroid(a,b,c);
-      const d=diffuse(norm,cx,cy,cz);
-      const [r,g,b2]=triColor(d,sh);
+      const n=triNormal(a,b,c);
+      const cx=(a.x+b.x+c.x)/3, cy=(a.y+b.y+c.y)/3, cz=(a.z+b.z+c.z)/3;
+      const ill=illuminance(n,cx,cy,cz);
+      const [r,g,bl]=triColor(ill,sh);
       ctx.beginPath();
       ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(c.x,c.y);
       ctx.closePath();
-      ctx.fillStyle=`rgb(${r},${g},${b2})`;
-      ctx.fill();
-      ctx.strokeStyle=`rgb(${Math.max(0,r-8)},${Math.max(0,g-8)},${Math.max(0,b2-8)})`;
-      ctx.lineWidth=0.7;
-      ctx.stroke();
-    });
+      ctx.fillStyle=`rgb(${r},${g},${bl})`;ctx.fill();
+      // subtle edge lines — slightly darker than fill, matching codingo's polygon edges
+      ctx.strokeStyle=`rgb(${Math.max(0,r-5)},${Math.max(0,g-5)},${Math.max(0,bl-5)})`;
+      ctx.lineWidth=0.4;ctx.stroke();
+    }
   }
 
   let rafId;
   function loop(ms){
     if(!running)return;
     if(FRAME_MS&&ms-lastFrameMs<FRAME_MS){rafId=requestAnimationFrame(loop);return}
-    lastFrameMs=ms;
-    draw(ms);
-    rafId=requestAnimationFrame(loop);
+    lastFrameMs=ms;draw(ms);rafId=requestAnimationFrame(loop);
   }
 
-  // Pause when tab hidden to save CPU
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden){running=false;cancelAnimationFrame(rafId)}
     else{running=true;rafId=requestAnimationFrame(loop)}
   });
 
-  // Reduced-motion: skip animation entirely
   if(window.matchMedia('(prefers-reduced-motion:reduce)').matches){
-    resize();
-    draw(1000);
+    resize();draw(2000);
     canvas.classList.add('ready');
-    const bd=document.getElementById('app-backdrop');
-    if(bd)bd.classList.add('ready');
+    const bd=document.getElementById('app-backdrop');if(bd)bd.classList.add('ready');
     return;
   }
 
-  window.addEventListener('resize',()=>{resize();});
+  window.addEventListener('resize',resize);
   resize();
-  // Fade in after first paint
   requestAnimationFrame(ms=>{
     draw(ms);
     canvas.classList.add('ready');
-    const bd=document.getElementById('app-backdrop');
-    if(bd)bd.classList.add('ready');
+    const bd=document.getElementById('app-backdrop');if(bd)bd.classList.add('ready');
     rafId=requestAnimationFrame(loop);
   });
 })();
