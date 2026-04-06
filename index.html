@@ -1501,8 +1501,10 @@ loadURL();render();if(S.isLive)setLive(true);
     // dynamic grid — codingo: segments=√W/2.5 (cols), slices=√H/1.5 (rows)
     COLS=Math.max(8,Math.round(Math.sqrt(W)/2.5));
     ROWS=Math.max(6,Math.round(Math.sqrt(H)/1.5));
-    // static light — codingo: setPosition(W/2.4, H/2.4, 300)
-    lightX=W/2.4; lightY=H/2.4;
+    // FSS setTransform(1,0,0,-1,halfW,halfH): canvas_x=halfW+geo_x, canvas_y=halfH-geo_y
+    // Light in geo space (W/2.4, H/2.4) → canvas: (halfW+W/2.4, halfH-H/2.4) = top-right
+    lightX = W/2 + W/2.4;   // ≈ 91.7% from left
+    lightY = H/2 - H/2.4;   // ≈ 8.3% from top
     buildMesh();
   }
 
@@ -1550,7 +1552,7 @@ loadURL();render();if(S.isLive)setLive(true);
       const oy=Math.cos(v.t+v.s[1]*ms*sp);
       const oz=Math.sin(v.t+v.s[2]*ms*sp);
       v.x=v.ox+X_RANGE*segW*ox;
-      v.y=v.oy+Y_RANGE*segH*oy;
+      v.y=v.oy-Y_RANGE*segH*oy;   // subtract: FSS y-up→canvas y-down flip
       v.z=Z_RANGE*OFFSET*oz-OFFSET;
     }
   }
