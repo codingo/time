@@ -43,7 +43,7 @@ button{font-family:var(--sans);cursor:pointer}
 
 #fss-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
 #fss-canvas.ready{opacity:1}
-#app-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background:rgba(11,13,15,0.80);pointer-events:none;opacity:0;transition:opacity 1.4s ease}
+#app-backdrop{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background:rgba(11,13,15,0.45);pointer-events:none;opacity:0;transition:opacity 1.4s ease}
 #app-backdrop.ready{opacity:1}
 .wrap,.site-footer{position:relative;z-index:1}
 
@@ -1536,10 +1536,15 @@ loadURL();render();if(S.isLive)setLive(true);
     //   ox = sin(time + step[0]*now*speed)
     //   oy = cos(time + step[1]*now*speed)   ← cos not sin
     //   oz = sin(time + step[2]*now*speed)
-    //   x  = anchor.x + xRange*(W/COLS)*ox   (segW = geometry.width/slices, scaled to pixels)
-    //   y  = anchor.y + yRange*(H/ROWS)*oy
-    //   z  = zRange*offset*oz − offset        ← always ≤ 0, range [−depth, 0]
-    const sp=LIGHT_SPEED, segW=W/COLS, segH=H/ROWS;
+    //   x  = anchor.x + xRange * geometry.segmentWidth * ox
+    //   y  = anchor.y + yRange * geometry.sliceHeight  * oy
+    //   z  = zRange*offset*oz − offset                  ← always ≤ 0
+    //
+    // geometry.segmentWidth = (MESH_W * W) / COLS   (full mesh pixel width ÷ columns)
+    // geometry.sliceHeight  = (MESH_H * H) / ROWS   (full mesh pixel height ÷ rows)
+    const sp=LIGHT_SPEED;
+    const segW = MESH_W * W / COLS;   // ← was W/COLS: Y was 55% too small
+    const segH = MESH_H * H / ROWS;   // ← was H/ROWS: fixes Y displacement to match codingo
     for(const v of verts){
       const ox=Math.sin(v.t+v.s[0]*ms*sp);
       const oy=Math.cos(v.t+v.s[1]*ms*sp);
