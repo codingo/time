@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Time Zone Converter — codingo/time</title>
+<meta name="description" content="Compare times across multiple cities instantly. Shows working hours, public holidays, and weekend flags. Shareable links.">
+<meta property="og:title" content="Time Zone Converter — codingo/time">
+<meta property="og:description" content="Compare times across cities instantly. Working hours, public holidays, shareable links.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://codingo.com/time">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@codingo_">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0d0f;
+  --surface: #13161a;
+  --surface2: #1a1e24;
+  --border: rgba(255,255,255,0.07);
+  --border-mid: rgba(255,255,255,0.13);
+  --text: #e2e8f0;
+  --text2: #7080a0;
+  --text3: #3a4560;
+  --accent: #3ddc84;
+  --accent-dim: rgba(61,220,132,0.10);
+  --green: #3ddc84;
+  --amber: #f0a500;
+  --orange: #ea580c;
+  --red: #f87171;
+  --mono: 'DM Mono','Courier New',monospace;
+  --sans: 'DM Sans',system-ui,sans-serif;
+  --rad: 10px;
+  --rad-sm: 7px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{color-scheme:dark}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.55;min-height:100vh;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:var(--accent);text-decoration:none}
+button{font-family:var(--sans);cursor:pointer}
+
+.wrap{max-width:820px;margin:0 auto;padding:0 20px}
+
+.hdr{padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.hdr-brand{display:flex;align-items:center;gap:12px}
+.hdr-logo{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-logo svg{display:block}
+.hdr h1{font-size:1.35rem;font-weight:600;letter-spacing:-0.025em;line-height:1.1;font-family:var(--mono)}
+.hdr-sub{font-size:0.75rem;color:var(--text2);white-space:nowrap;padding-bottom:2px;font-family:var(--mono);opacity:0.6;transition:opacity 0.15s}
+.hdr-sub:hover{opacity:1}
+
+.site-footer{max-width:820px;margin:0 auto;padding:16px 20px calc(20px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.footer-brand{font-family:var(--mono);font-size:11px;color:var(--text3);transition:color 0.15s}
+.footer-brand:hover{color:var(--accent)}
+.footer-socials{display:flex;gap:18px;align-items:center}
+.footer-social{color:var(--text3);display:flex;align-items:center;transition:color 0.15s}
+.footer-social:hover{color:var(--accent)}
+.footer-social svg{display:block}
+
+.search-wrap{position:relative;margin-bottom:14px}
+.search-row{display:flex;align-items:center;background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--rad);transition:border-color 0.15s,box-shadow 0.15s}
+.search-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.search-icon{padding:0 12px;color:var(--text3);flex-shrink:0;display:flex;align-items:center}
+#search{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--sans);font-size:16px;padding:11px 0}
+#search::placeholder{color:var(--text3)}
+.search-hint{font-size:0.7rem;color:var(--text3);padding-right:12px;white-space:nowrap;flex-shrink:0}
+
+.chips-wrap{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chips-wrap.gone{display:none}
+.chip{background:var(--surface);border:1px solid var(--border-mid);color:var(--text2);font-size:11px;padding:4px 10px 4px 8px;border-radius:20px;cursor:pointer;transition:background 0.1s,border-color 0.1s,color 0.1s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.chip:hover{background:var(--surface2);border-color:var(--accent);color:var(--text)}
+.chip-flag{font-size:13px;line-height:1}
+
+.ac{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--rad);z-index:200;overflow:hidden;max-height:340px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.6)}
+.ac.hidden{display:none}
+.ac-item{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background 0.08s}
+.ac-item:hover,.ac-item.hi{background:var(--surface2)}
+.ac-item.used{opacity:.35;pointer-events:none}
+.ac-flag{font-size:1.2rem;text-align:center;line-height:1}
+.ac-name{font-weight:500;font-size:13px}
+.ac-country{font-size:11px;color:var(--text2);margin-top:1px}
+.ac-meta{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right}
+
+.list-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;min-height:26px}
+.list-hdr.gone{display:none}
+.list-hdr-left{font-size:11px;color:var(--text3)}
+.btn-ghost{background:transparent;border:1px solid transparent;color:var(--text2);font-size:11px;padding:3px 9px;border-radius:var(--rad-sm);transition:color 0.1s,background 0.1s,border-color 0.1s}
+.btn-ghost:hover{color:var(--red);background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.2)}
+
+.city-list{display:flex;flex-direction:column;gap:5px}
+
+.city-row{display:grid;grid-template-columns:26px 30px 1fr auto 10px;align-items:center;gap:10px 10px;padding:12px 12px 12px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);position:relative;transition:border-color 0.12s,background 0.12s,opacity 0.15s,transform 0.1s;cursor:default}
+.city-row:hover{background:var(--surface2);border-color:var(--border-mid)}
+.city-row:hover .rm-btn{opacity:1}
+.city-row:hover .drag-handle{opacity:0.5}
+.city-row.dragging{opacity:0.35;transform:scale(0.98)}
+.city-row.drag-over{border-color:var(--accent);border-style:dashed}
+
+.drag-handle{opacity:0;cursor:grab;display:flex;flex-direction:column;gap:3px;padding:2px 3px;transition:opacity 0.12s;align-self:center}
+.drag-handle span{display:block;width:14px;height:1.5px;background:var(--text2);border-radius:1px}
+
+.row-flag{font-size:1.4rem;line-height:1;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))}
+
+.row-meta{min-width:0}
+.row-city{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.row-tz{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.row-rel{font-size:10px;color:var(--text3);margin-top:1px}
+
+.row-wknd{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:0.06em;color:var(--amber);background:rgba(240,165,0,0.1);border:1px solid rgba(240,165,0,0.25);border-radius:3px;padding:1px 4px;flex-shrink:0}
+.row-hol{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:0.04em;color:var(--red);background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);border-radius:3px;padding:1px 5px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;cursor:help}
+.city-row.weekend .date-inp,.city-row.holiday .date-inp{color:var(--amber)}
+
+.row-time-block{text-align:right;min-width:108px;position:relative}
+.row-time-block::before{content:'✎';position:absolute;top:2px;left:-16px;font-size:10px;color:var(--text3);opacity:0;transition:opacity 0.15s;pointer-events:none}
+.city-row:hover .row-time-block::before{opacity:1}
+
+.time-inp{font-family:var(--mono);font-size:max(1.3rem,16px);font-weight:500;letter-spacing:-0.03em;background:transparent;border:none;border-bottom:1.5px solid transparent;color:var(--text);text-align:right;padding:2px 4px;width:100%;cursor:pointer;outline:none;color-scheme:dark;border-radius:4px 4px 0 0;transition:border-color 0.15s,background 0.12s;line-height:1.2;-webkit-appearance:none}
+.time-inp:hover{background:var(--surface2)}
+.time-inp:focus{border-bottom-color:var(--accent);background:var(--surface2)}
+
+.date-inp{font-family:var(--sans);font-size:11px;color:var(--text2);background:transparent;border:none;border-bottom:1.5px solid transparent;text-align:right;padding:2px 4px;width:100%;cursor:pointer;outline:none;color-scheme:dark;border-radius:4px 4px 0 0;transition:border-color 0.15s,background 0.12s;-webkit-appearance:none;margin-top:3px;display:block}
+.date-inp:hover{background:var(--surface2)}
+.date-inp:focus{border-bottom-color:var(--accent);background:var(--surface2)}
+
+.row-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.row-dot.working{background:var(--green);box-shadow:0 0 6px var(--green)}
+.row-dot.shoulder{background:var(--amber)}
+.row-dot.sleeping{background:var(--text3)}
+
+.rm-btn{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--text3);font-size:14px;line-height:1;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:4px;opacity:0;transition:opacity 0.12s,color 0.1s,background 0.1s}
+.rm-btn:hover{color:var(--red);background:rgba(248,113,113,0.1)}
+
+.city-row.is-ref{border-left:2px solid rgba(61,220,132,0.35)}
+
+.overlap-bar{font-family:var(--mono);font-size:10px;color:var(--text3);margin:6px 0 0;padding:4px 8px;border-radius:var(--rad-sm);display:none}
+.overlap-bar.has{color:var(--green);background:rgba(61,220,132,0.06);border:1px solid rgba(61,220,132,0.15);display:block;cursor:pointer;transition:background 0.1s}
+.overlap-bar.has:hover{background:rgba(61,220,132,0.12)}
+.overlap-bar.none{color:var(--text3);background:rgba(255,255,255,0.03);border:1px solid var(--border);display:block}
+
+.tl-wrap{margin:20px 0 0;user-select:none}
+.tl-wrap.gone{display:none}
+
+.tl-bar-outer{position:relative;height:32px;cursor:pointer;touch-action:none}
+.tl-bar{position:absolute;top:8px;left:0;right:0;height:16px;border-radius:8px;overflow:hidden}
+.tl-bar-inner{position:absolute;inset:0;border-radius:8px}
+.tl-scrub{position:absolute;width:20px;height:20px;top:6px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,0.5);border:2.5px solid var(--accent);transform:translateX(-50%);cursor:grab;z-index:2;transition:box-shadow 0.1s}
+.tl-scrub:active,.tl-scrub.drag{cursor:grabbing;box-shadow:0 2px 14px rgba(0,0,0,0.7)}
+.tl-tip{position:absolute;background:var(--surface2);border:1px solid var(--border-mid);border-radius:6px;padding:3px 8px;font-family:var(--mono);font-size:10px;color:var(--text);pointer-events:none;transform:translateX(-50%);top:-26px;white-space:nowrap;z-index:10;display:none}
+.tl-tip.show{display:block}
+.tl-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px}
+.tl-labels span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48%}
+
+.controls{display:flex;align-items:center;gap:6px;margin:14px 0 16px}
+.controls.gone{display:none}
+.btn-ctrl{background:var(--surface);border:1px solid var(--border-mid);color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 13px;border-radius:var(--rad-sm);transition:background 0.1s,border-color 0.1s}
+.btn-ctrl:hover{background:var(--surface2);border-color:rgba(255,255,255,0.2)}
+.btn-sm{padding:6px 9px;color:var(--text2);font-size:11px}
+.btn-now{font-family:var(--sans);font-size:12px;font-weight:500;min-width:60px}
+.btn-now.live{color:var(--green);border-color:rgba(61,220,132,0.4);background:rgba(61,220,132,0.06)}
+.btn-now.live::before{content:'';display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:6px;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+.copy-btns{display:flex;gap:6px;margin-left:auto}
+.btn-copy,.btn-copy-text{font-family:var(--sans);font-size:12px;font-weight:500}
+.btn-copy.done,.btn-copy-text.done{color:var(--green);border-color:rgba(61,220,132,0.4);background:rgba(61,220,132,0.06)}
+
+.legend{display:flex;gap:16px;font-size:10px;color:var(--text3);margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.legend.gone{display:none}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.leg-keys{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--text3)}
+
+.empty{text-align:center;padding:48px 20px 32px}
+.empty-globe{font-size:36px;margin-bottom:12px;opacity:0.3}
+.empty-title{font-size:15px;font-weight:500;color:var(--text2);margin-bottom:5px}
+.empty-sub{font-size:12px;color:var(--text3);margin-bottom:20px}
+
+.ac::-webkit-scrollbar{width:5px}
+.ac::-webkit-scrollbar-track{background:transparent}
+.ac::-webkit-scrollbar-thumb{background:var(--border-mid);border-radius:3px}
+
+/* ── Touch: bigger scrubber hit area ─────────── */
+@media(hover:none){
+  .tl-scrub{width:28px;height:28px;top:2px}
+  .rm-btn{opacity:1;width:36px;height:36px;top:4px;right:4px;font-size:18px}
+  .city-row:hover .rm-btn{opacity:1}
+  .chip{padding:7px 13px 7px 10px;font-size:12px}
+  .chip-flag{font-size:15px}
+  .btn-ctrl{padding:10px 14px;font-size:13px}
+  .ac-item{padding:12px 14px}
+}
+
+/* ── Mobile layout ────────────────────────────── */
+@media(max-width:600px){
+  .wrap{padding:0 14px}
+
+  /* Header */
+  .hdr{padding:20px 0 16px;flex-direction:row;align-items:center;gap:0}
+  .hdr-sub{display:none}
+
+  /* Search — prevent iOS zoom (needs ≥16px) */
+  #search{font-size:16px}
+
+  /* Chips — horizontal scroll, no wrap */
+  .chips-wrap{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;gap:7px;scrollbar-width:none}
+  .chips-wrap::-webkit-scrollbar{display:none}
+  .chip{flex-shrink:0}
+
+  /* Autocomplete — limit height with keyboard up */
+  .ac{max-height:220px}
+
+  /* City row — stack into 2-row card on mobile:
+     Row 1: flag · city name · status dot
+     Row 2: time+date inputs spanning full width    */
+  .city-row{
+    display:grid;
+    grid-template-columns:30px 1fr 12px;
+    grid-template-rows:auto auto;
+    grid-template-areas:
+      "flag meta dot"
+      "time time time";
+    gap:8px 8px;
+    padding:12px 10px 10px;
+  }
+  .drag-handle{display:none}
+  .row-flag{grid-area:flag;font-size:1.5rem}
+  .row-meta{grid-area:meta;min-width:0}
+  .row-city{font-size:13.5px}
+  .row-dot{grid-area:dot;align-self:center;justify-self:end}
+  .rm-btn{top:6px;right:6px}
+
+  /* Time block spans full width on row 2 */
+  .row-time-block{
+    grid-area:time;
+    min-width:0;
+    text-align:left;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    border-top:1px solid var(--border);
+    padding-top:8px;
+  }
+  .row-time-block::before{display:none}
+
+  /* Inputs — side by side, left-aligned, iOS zoom fix */
+  .time-inp{
+    font-size:1.15rem;
+    width:auto;
+    flex-shrink:0;
+    text-align:left;
+    padding:4px 6px;
+    border-bottom-color:var(--border-mid);
+  }
+  .date-inp{
+    font-size:16px;
+    width:auto;
+    flex:1;
+    text-align:left;
+    margin-top:0;
+    padding:4px 6px;
+    border-bottom-color:var(--border-mid);
+    color:var(--text2);
+  }
+  .search-hint{display:none}
+
+  /* Timeline — taller hit area */
+  .tl-bar-outer{height:44px}
+  .tl-bar{top:14px;height:16px}
+  .tl-scrub{top:10px}
+  .tl-tip{display:none !important}
+  .tl-labels{font-size:9px}
+
+  /* Controls — two rows: step buttons top, copy bottom */
+  .controls{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    grid-template-rows:auto auto;
+    gap:6px;
+    margin:12px 0 14px;
+  }
+  .btn-ctrl{padding:10px 4px;font-size:11px;text-align:center}
+  .btn-now{grid-column:3}
+  .copy-btns{grid-column:1/-1;margin-left:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .btn-copy,.btn-copy-text{width:100%;padding:11px;font-size:13px;text-align:center}
+
+  /* Legend — hide keyboard hints, compress */
+  .legend{gap:10px;margin-bottom:16px}
+  .leg-keys{display:none}
+
+  /* Overlap bar */
+  .overlap-bar{font-size:11px;padding:6px 10px}
+
+  .site-footer{padding:14px 14px calc(16px + env(safe-area-inset-bottom,0px))}
+  .footer-brand{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hdr">
+    <div class="hdr-brand">
+      <a href="https://codingo.com" target="_blank" rel="noopener" class="hdr-logo" title="codingo.com">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="5.5" stroke="white" stroke-width="1.4"/>
+          <path d="M7 2v5l2.5 2.5" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+      <h1>time</h1>
+    </div>
+    <a href="https://codingo.com" target="_blank" rel="noopener" class="hdr-sub">codingo.com/time</a>
+  </header>
+
+  <div class="search-wrap" id="search-wrap-el">
+    <div class="search-row">
+      <span class="search-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <input id="search" type="text" placeholder="Add a city or time zone…" autocomplete="off" spellcheck="false">
+      <span class="search-hint">up to 12</span>
+    </div>
+    <div class="ac hidden" id="ac"></div>
+  </div>
+
+  <div class="chips-wrap" id="chips-wrap">
+    <button class="chip" data-tz="Australia/Brisbane" data-n="Gold Coast" data-cc="AU"><span class="chip-flag">🇦🇺</span>Gold Coast</button>
+    <button class="chip" data-tz="Australia/Sydney" data-n="Sydney" data-cc="AU"><span class="chip-flag">🇦🇺</span>Sydney</button>
+    <button class="chip" data-tz="Asia/Singapore" data-n="Singapore" data-cc="SG"><span class="chip-flag">🇸🇬</span>Singapore</button>
+    <button class="chip" data-tz="Europe/London" data-n="London" data-cc="GB"><span class="chip-flag">🇬🇧</span>London</button>
+    <button class="chip" data-tz="America/New_York" data-n="New York" data-cc="US"><span class="chip-flag">🇺🇸</span>New York</button>
+    <button class="chip" data-tz="America/Los_Angeles" data-n="Los Angeles" data-cc="US"><span class="chip-flag">🇺🇸</span>Los Angeles</button>
+    <button class="chip" data-tz="Asia/Tokyo" data-n="Tokyo" data-cc="JP"><span class="chip-flag">🇯🇵</span>Tokyo</button>
+    <button class="chip" data-tz="Asia/Dubai" data-n="Dubai" data-cc="AE"><span class="chip-flag">🇦🇪</span>Dubai</button>
+    <button class="chip" data-tz="Europe/Berlin" data-n="Berlin" data-cc="DE"><span class="chip-flag">🇩🇪</span>Berlin</button>
+    <button class="chip" data-tz="America/Toronto" data-n="Toronto" data-cc="CA"><span class="chip-flag">🇨🇦</span>Toronto</button>
+    <button class="chip" data-tz="America/Chicago" data-n="Chicago" data-cc="US"><span class="chip-flag">🇺🇸</span>Chicago</button>
+    <button class="chip" data-tz="Pacific/Auckland" data-n="Auckland" data-cc="NZ"><span class="chip-flag">🇳🇿</span>Auckland</button>
+  </div>
+
+  <div class="list-hdr gone" id="list-hdr">
+    <span class="list-hdr-left" id="city-count"></span>
+    <button class="btn-ghost" id="btn-clear">Remove all</button>
+  </div>
+
+  <div class="city-list" id="city-list"></div>
+
+  <div class="overlap-bar" id="overlap-bar"></div>
+
+  <div class="tl-wrap gone" id="tl-wrap">
+    <div class="tl-bar-outer" id="tl-bar-outer">
+      <div class="tl-bar" id="tl-bar">
+        <div class="tl-bar-inner" id="tl-bar-inner"></div>
+      </div>
+      <div class="tl-scrub" id="tl-scrub"></div>
+      <div class="tl-tip" id="tl-tip"></div>
+    </div>
+    <div class="tl-labels">
+      <span id="tl-lbl-l"></span>
+      <span id="tl-lbl-r"></span>
+    </div>
+  </div>
+
+  <div class="controls gone" id="controls">
+    <button class="btn-ctrl" id="btn-prev-h" title="−1 hour [←]">−1h</button>
+    <button class="btn-ctrl btn-sm" id="btn-prev-m" title="−15 min [Shift+←]">−15m</button>
+    <button class="btn-ctrl btn-now" id="btn-now">Now</button>
+    <button class="btn-ctrl btn-sm" id="btn-next-m" title="+15 min [Shift+→]">+15m</button>
+    <button class="btn-ctrl" id="btn-next-h" title="+1 hour [→]">+1h</button>
+    <div class="copy-btns">
+      <button class="btn-ctrl btn-copy" id="btn-copy" title="Copy shareable link">Copy link</button>
+      <button class="btn-ctrl btn-copy-text" id="btn-copy-text" title="Copy plain-text summary for Slack / email">Copy text</button>
+    </div>
+  </div>
+
+  <div class="legend gone" id="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Working</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>Shoulder</div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--text3)"></div>Sleeping</div>
+    <div class="leg-item leg-keys">← → ±1h · Shift+← → ±15m · / = search · N = now</div>
+  </div>
+
+  <div class="empty" id="empty">
+    <div class="empty-globe">🌍</div>
+    <div class="empty-title">No locations added</div>
+    <div class="empty-sub">Search above or pick a quick-add</div>
+  </div>
+
+</div>
+
+<footer class="site-footer">
+  <a href="https://codingo.com" target="_blank" rel="noopener" class="footer-brand">codingo.com</a>
+  <div class="footer-socials">
+    <a href="https://twitter.com/codingo_" target="_blank" rel="noopener" class="footer-social" title="Twitter / X @codingo_">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-label="Twitter"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <a href="https://youtube.com/codingo" target="_blank" rel="noopener" class="footer-social" title="YouTube">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-label="YouTube"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+    </a>
+    <a href="https://github.com/codingo" target="_blank" rel="noopener" class="footer-social" title="GitHub">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-label="GitHub"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+    </a>
+  </div>
+</footer>
+
+<script>
+const DB = [
+  {n:"Honolulu",c:"United States",cc:"US",tz:"Pacific/Honolulu",p:350964},
+  {n:"Pago Pago",c:"American Samoa",cc:"AS",tz:"Pacific/Pago_Pago",p:48946},
+  {n:"Anchorage",c:"United States",cc:"US",tz:"America/Anchorage",p:291538},
+  {n:"Los Angeles",c:"United States",cc:"US",tz:"America/Los_Angeles",p:3979576},
+  {n:"San Francisco",c:"United States",cc:"US",tz:"America/Los_Angeles",p:881549},
+  {n:"San Jose",c:"United States",cc:"US",tz:"America/Los_Angeles",p:1021795},
+  {n:"Seattle",c:"United States",cc:"US",tz:"America/Los_Angeles",p:753675},
+  {n:"Portland",c:"United States",cc:"US",tz:"America/Los_Angeles",p:652503},
+  {n:"Las Vegas",c:"United States",cc:"US",tz:"America/Los_Angeles",p:641903},
+  {n:"Vancouver",c:"Canada",cc:"CA",tz:"America/Vancouver",p:675218},
+  {n:"Phoenix",c:"United States",cc:"US",tz:"America/Phoenix",p:1608139},
+  {n:"Tucson",c:"United States",cc:"US",tz:"America/Phoenix",p:542629},
+  {n:"Denver",c:"United States",cc:"US",tz:"America/Denver",p:705576},
+  {n:"Calgary",c:"Canada",cc:"CA",tz:"America/Edmonton",p:1336000},
+  {n:"Edmonton",c:"Canada",cc:"CA",tz:"America/Edmonton",p:981280},
+  {n:"Salt Lake City",c:"United States",cc:"US",tz:"America/Denver",p:199723},
+  {n:"Chicago",c:"United States",cc:"US",tz:"America/Chicago",p:2696555},
+  {n:"Dallas",c:"United States",cc:"US",tz:"America/Chicago",p:1343573},
+  {n:"Houston",c:"United States",cc:"US",tz:"America/Chicago",p:2304580},
+  {n:"San Antonio",c:"United States",cc:"US",tz:"America/Chicago",p:1434625},
+  {n:"Minneapolis",c:"United States",cc:"US",tz:"America/Chicago",p:429606},
+  {n:"Winnipeg",c:"Canada",cc:"CA",tz:"America/Winnipeg",p:778489},
+  {n:"Mexico City",c:"Mexico",cc:"MX",tz:"America/Mexico_City",p:8918653},
+  {n:"Guadalajara",c:"Mexico",cc:"MX",tz:"America/Mexico_City",p:1495189},
+  {n:"Monterrey",c:"Mexico",cc:"MX",tz:"America/Monterrey",p:1135550},
+  {n:"Guatemala City",c:"Guatemala",cc:"GT",tz:"America/Guatemala",p:994938},
+  {n:"New York",c:"United States",cc:"US",tz:"America/New_York",p:8336817},
+  {n:"Toronto",c:"Canada",cc:"CA",tz:"America/Toronto",p:2731571},
+  {n:"Miami",c:"United States",cc:"US",tz:"America/New_York",p:442241},
+  {n:"Washington DC",c:"United States",cc:"US",tz:"America/New_York",p:705749},
+  {n:"Boston",c:"United States",cc:"US",tz:"America/New_York",p:675647},
+  {n:"Atlanta",c:"United States",cc:"US",tz:"America/New_York",p:498715},
+  {n:"Philadelphia",c:"United States",cc:"US",tz:"America/New_York",p:1584064},
+  {n:"Detroit",c:"United States",cc:"US",tz:"America/Detroit",p:639111},
+  {n:"Montreal",c:"Canada",cc:"CA",tz:"America/Toronto",p:1780000},
+  {n:"Ottawa",c:"Canada",cc:"CA",tz:"America/Toronto",p:1017449},
+  {n:"Havana",c:"Cuba",cc:"CU",tz:"America/Havana",p:2141993},
+  {n:"Kingston",c:"Jamaica",cc:"JM",tz:"America/Jamaica",p:662426},
+  {n:"Port-au-Prince",c:"Haiti",cc:"HT",tz:"America/Port-au-Prince",p:2618894},
+  {n:"Santo Domingo",c:"Dominican Republic",cc:"DO",tz:"America/Santo_Domingo",p:2201941},
+  {n:"San Juan",c:"Puerto Rico",cc:"PR",tz:"America/Puerto_Rico",p:342259},
+  {n:"Halifax",c:"Canada",cc:"CA",tz:"America/Halifax",p:403131},
+  {n:"Bogotá",c:"Colombia",cc:"CO",tz:"America/Bogota",p:7413689},
+  {n:"Lima",c:"Peru",cc:"PE",tz:"America/Lima",p:8852000},
+  {n:"Quito",c:"Ecuador",cc:"EC",tz:"America/Guayaquil",p:1619146},
+  {n:"Caracas",c:"Venezuela",cc:"VE",tz:"America/Caracas",p:2900000},
+  {n:"Manaus",c:"Brazil",cc:"BR",tz:"America/Manaus",p:2182763},
+  {n:"La Paz",c:"Bolivia",cc:"BO",tz:"America/La_Paz",p:2281210},
+  {n:"Asunción",c:"Paraguay",cc:"PY",tz:"America/Asuncion",p:524190},
+  {n:"Santiago",c:"Chile",cc:"CL",tz:"America/Santiago",p:6310000},
+  {n:"Buenos Aires",c:"Argentina",cc:"AR",tz:"America/Argentina/Buenos_Aires",p:13076300},
+  {n:"São Paulo",c:"Brazil",cc:"BR",tz:"America/Sao_Paulo",p:12325232},
+  {n:"Rio de Janeiro",c:"Brazil",cc:"BR",tz:"America/Sao_Paulo",p:6747815},
+  {n:"Brasília",c:"Brazil",cc:"BR",tz:"America/Sao_Paulo",p:2817068},
+  {n:"Montevideo",c:"Uruguay",cc:"UY",tz:"America/Montevideo",p:1305082},
+  {n:"Recife",c:"Brazil",cc:"BR",tz:"America/Recife",p:1616961},
+  {n:"Fortaleza",c:"Brazil",cc:"BR",tz:"America/Fortaleza",p:2669342},
+  // Europe
+  {n:"Lisbon",c:"Portugal",cc:"PT",tz:"Europe/Lisbon",p:505526},
+  {n:"London",c:"United Kingdom",cc:"GB",tz:"Europe/London",p:8961989},
+  {n:"Birmingham",c:"United Kingdom",cc:"GB",tz:"Europe/London",p:1141816},
+  {n:"Manchester",c:"United Kingdom",cc:"GB",tz:"Europe/London",p:553230},
+  {n:"Dublin",c:"Ireland",cc:"IE",tz:"Europe/Dublin",p:1173179},
+  {n:"Reykjavik",c:"Iceland",cc:"IS",tz:"Atlantic/Reykjavik",p:128793},
+  {n:"Paris",c:"France",cc:"FR",tz:"Europe/Paris",p:2140526},
+  {n:"Lyon",c:"France",cc:"FR",tz:"Europe/Paris",p:513275},
+  {n:"Marseille",c:"France",cc:"FR",tz:"Europe/Paris",p:861635},
+  {n:"Amsterdam",c:"Netherlands",cc:"NL",tz:"Europe/Amsterdam",p:872680},
+  {n:"Brussels",c:"Belgium",cc:"BE",tz:"Europe/Brussels",p:1208542},
+  {n:"Luxembourg",c:"Luxembourg",cc:"LU",tz:"Europe/Luxembourg",p:124528},
+  {n:"Zurich",c:"Switzerland",cc:"CH",tz:"Europe/Zurich",p:402762},
+  {n:"Geneva",c:"Switzerland",cc:"CH",tz:"Europe/Zurich",p:201818},
+  {n:"Berlin",c:"Germany",cc:"DE",tz:"Europe/Berlin",p:3769495},
+  {n:"Frankfurt",c:"Germany",cc:"DE",tz:"Europe/Berlin",p:773068},
+  {n:"Munich",c:"Germany",cc:"DE",tz:"Europe/Berlin",p:1472000},
+  {n:"Hamburg",c:"Germany",cc:"DE",tz:"Europe/Berlin",p:1899160},
+  {n:"Cologne",c:"Germany",cc:"DE",tz:"Europe/Berlin",p:1007119},
+  {n:"Madrid",c:"Spain",cc:"ES",tz:"Europe/Madrid",p:3223334},
+  {n:"Barcelona",c:"Spain",cc:"ES",tz:"Europe/Madrid",p:1636762},
+  {n:"Valencia",c:"Spain",cc:"ES",tz:"Europe/Madrid",p:800666},
+  {n:"Rome",c:"Italy",cc:"IT",tz:"Europe/Rome",p:4342212},
+  {n:"Milan",c:"Italy",cc:"IT",tz:"Europe/Rome",p:1378689},
+  {n:"Naples",c:"Italy",cc:"IT",tz:"Europe/Rome",p:967069},
+  {n:"Vienna",c:"Austria",cc:"AT",tz:"Europe/Vienna",p:1911191},
+  {n:"Warsaw",c:"Poland",cc:"PL",tz:"Europe/Warsaw",p:1793579},
+  {n:"Krakow",c:"Poland",cc:"PL",tz:"Europe/Warsaw",p:779115},
+  {n:"Prague",c:"Czech Republic",cc:"CZ",tz:"Europe/Prague",p:1309000},
+  {n:"Budapest",c:"Hungary",cc:"HU",tz:"Europe/Budapest",p:1752286},
+  {n:"Stockholm",c:"Sweden",cc:"SE",tz:"Europe/Stockholm",p:975551},
+  {n:"Gothenburg",c:"Sweden",cc:"SE",tz:"Europe/Stockholm",p:579281},
+  {n:"Oslo",c:"Norway",cc:"NO",tz:"Europe/Oslo",p:681067},
+  {n:"Copenhagen",c:"Denmark",cc:"DK",tz:"Europe/Copenhagen",p:794128},
+  {n:"Helsinki",c:"Finland",cc:"FI",tz:"Europe/Helsinki",p:653835},
+  {n:"Riga",c:"Latvia",cc:"LV",tz:"Europe/Riga",p:627487},
+  {n:"Vilnius",c:"Lithuania",cc:"LT",tz:"Europe/Vilnius",p:580020},
+  {n:"Tallinn",c:"Estonia",cc:"EE",tz:"Europe/Tallinn",p:437619},
+  {n:"Athens",c:"Greece",cc:"GR",tz:"Europe/Athens",p:664046},
+  {n:"Thessaloniki",c:"Greece",cc:"GR",tz:"Europe/Athens",p:325182},
+  {n:"Sofia",c:"Bulgaria",cc:"BG",tz:"Europe/Sofia",p:1241675},
+  {n:"Kyiv",c:"Ukraine",cc:"UA",tz:"Europe/Kiev",p:2962180},
+  {n:"Bucharest",c:"Romania",cc:"RO",tz:"Europe/Bucharest",p:1821000},
+  {n:"Belgrade",c:"Serbia",cc:"RS",tz:"Europe/Belgrade",p:1688667},
+  {n:"Zagreb",c:"Croatia",cc:"HR",tz:"Europe/Zagreb",p:806341},
+  {n:"Ljubljana",c:"Slovenia",cc:"SI",tz:"Europe/Ljubljana",p:286745},
+  {n:"Bratislava",c:"Slovakia",cc:"SK",tz:"Europe/Bratislava",p:475503},
+  {n:"Moscow",c:"Russia",cc:"RU",tz:"Europe/Moscow",p:12506468},
+  {n:"St Petersburg",c:"Russia",cc:"RU",tz:"Europe/Moscow",p:5384342},
+  {n:"Minsk",c:"Belarus",cc:"BY",tz:"Europe/Minsk",p:1982444},
+  {n:"Nicosia",c:"Cyprus",cc:"CY",tz:"Asia/Nicosia",p:330000},
+  // Middle East & Africa
+  {n:"Istanbul",c:"Turkey",cc:"TR",tz:"Europe/Istanbul",p:15029231},
+  {n:"Ankara",c:"Turkey",cc:"TR",tz:"Europe/Istanbul",p:5663322},
+  {n:"Cairo",c:"Egypt",cc:"EG",tz:"Africa/Cairo",p:9500000},
+  {n:"Alexandria",c:"Egypt",cc:"EG",tz:"Africa/Cairo",p:5200000},
+  {n:"Amman",c:"Jordan",cc:"JO",tz:"Asia/Amman",p:1036330},
+  {n:"Beirut",c:"Lebanon",cc:"LB",tz:"Asia/Beirut",p:2424000},
+  {n:"Tel Aviv",c:"Israel",cc:"IL",tz:"Asia/Jerusalem",p:460613},
+  {n:"Jerusalem",c:"Israel",cc:"IL",tz:"Asia/Jerusalem",p:919438},
+  {n:"Riyadh",c:"Saudi Arabia",cc:"SA",tz:"Asia/Riyadh",p:7676654},
+  {n:"Jeddah",c:"Saudi Arabia",cc:"SA",tz:"Asia/Riyadh",p:4697000},
+  {n:"Kuwait City",c:"Kuwait",cc:"KW",tz:"Asia/Kuwait",p:3114000},
+  {n:"Manama",c:"Bahrain",cc:"BH",tz:"Asia/Bahrain",p:411743},
+  {n:"Doha",c:"Qatar",cc:"QA",tz:"Asia/Qatar",p:1965000},
+  {n:"Dubai",c:"UAE",cc:"AE",tz:"Asia/Dubai",p:3331420},
+  {n:"Abu Dhabi",c:"UAE",cc:"AE",tz:"Asia/Dubai",p:1482816},
+  {n:"Muscat",c:"Oman",cc:"OM",tz:"Asia/Muscat",p:1590000},
+  {n:"Baghdad",c:"Iraq",cc:"IQ",tz:"Asia/Baghdad",p:7180889},
+  {n:"Tehran",c:"Iran",cc:"IR",tz:"Asia/Tehran",p:9259009},
+  {n:"Kabul",c:"Afghanistan",cc:"AF",tz:"Asia/Kabul",p:4114646},
+  {n:"Nairobi",c:"Kenya",cc:"KE",tz:"Africa/Nairobi",p:4397073},
+  {n:"Addis Ababa",c:"Ethiopia",cc:"ET",tz:"Africa/Addis_Ababa",p:3041002},
+  {n:"Dar es Salaam",c:"Tanzania",cc:"TZ",tz:"Africa/Dar_es_Salaam",p:4364541},
+  {n:"Khartoum",c:"Sudan",cc:"SD",tz:"Africa/Khartoum",p:5534000},
+  {n:"Johannesburg",c:"South Africa",cc:"ZA",tz:"Africa/Johannesburg",p:5635127},
+  {n:"Cape Town",c:"South Africa",cc:"ZA",tz:"Africa/Johannesburg",p:4618000},
+  {n:"Durban",c:"South Africa",cc:"ZA",tz:"Africa/Johannesburg",p:3720000},
+  {n:"Casablanca",c:"Morocco",cc:"MA",tz:"Africa/Casablanca",p:3752000},
+  {n:"Tunis",c:"Tunisia",cc:"TN",tz:"Africa/Tunis",p:1056247},
+  {n:"Algiers",c:"Algeria",cc:"DZ",tz:"Africa/Algiers",p:2693000},
+  {n:"Tripoli",c:"Libya",cc:"LY",tz:"Africa/Tripoli",p:1126000},
+  {n:"Lagos",c:"Nigeria",cc:"NG",tz:"Africa/Lagos",p:14862000},
+  {n:"Accra",c:"Ghana",cc:"GH",tz:"Africa/Accra",p:2291352},
+  {n:"Dakar",c:"Senegal",cc:"SN",tz:"Africa/Dakar",p:3732000},
+  {n:"Abidjan",c:"Ivory Coast",cc:"CI",tz:"Africa/Abidjan",p:5068858},
+  {n:"Kinshasa",c:"DR Congo",cc:"CD",tz:"Africa/Kinshasa",p:14342439},
+  {n:"Luanda",c:"Angola",cc:"AO",tz:"Africa/Luanda",p:8329000},
+  {n:"Harare",c:"Zimbabwe",cc:"ZW",tz:"Africa/Harare",p:1606000},
+  {n:"Lusaka",c:"Zambia",cc:"ZM",tz:"Africa/Lusaka",p:2179400},
+  {n:"Antananarivo",c:"Madagascar",cc:"MG",tz:"Indian/Antananarivo",p:1275207},
+  // Asia
+  {n:"Karachi",c:"Pakistan",cc:"PK",tz:"Asia/Karachi",p:14910352},
+  {n:"Islamabad",c:"Pakistan",cc:"PK",tz:"Asia/Karachi",p:1014825},
+  {n:"Lahore",c:"Pakistan",cc:"PK",tz:"Asia/Karachi",p:11318745},
+  {n:"Tashkent",c:"Uzbekistan",cc:"UZ",tz:"Asia/Tashkent",p:2405900},
+  {n:"Almaty",c:"Kazakhstan",cc:"KZ",tz:"Asia/Almaty",p:1854000},
+  {n:"Astana",c:"Kazakhstan",cc:"KZ",tz:"Asia/Almaty",p:1078000},
+  {n:"Mumbai",c:"India",cc:"IN",tz:"Asia/Kolkata",p:20667656},
+  {n:"New Delhi",c:"India",cc:"IN",tz:"Asia/Kolkata",p:32226000},
+  {n:"Bengaluru",c:"India",cc:"IN",tz:"Asia/Kolkata",p:12476000},
+  {n:"Kolkata",c:"India",cc:"IN",tz:"Asia/Kolkata",p:14850000},
+  {n:"Chennai",c:"India",cc:"IN",tz:"Asia/Kolkata",p:7088000},
+  {n:"Hyderabad",c:"India",cc:"IN",tz:"Asia/Kolkata",p:6809970},
+  {n:"Pune",c:"India",cc:"IN",tz:"Asia/Kolkata",p:3124458},
+  {n:"Ahmedabad",c:"India",cc:"IN",tz:"Asia/Kolkata",p:5570585},
+  {n:"Colombo",c:"Sri Lanka",cc:"LK",tz:"Asia/Colombo",p:752993},
+  {n:"Kathmandu",c:"Nepal",cc:"NP",tz:"Asia/Kathmandu",p:1442271},
+  {n:"Dhaka",c:"Bangladesh",cc:"BD",tz:"Asia/Dhaka",p:22477904},
+  {n:"Chittagong",c:"Bangladesh",cc:"BD",tz:"Asia/Dhaka",p:2990000},
+  {n:"Yangon",c:"Myanmar",cc:"MM",tz:"Asia/Rangoon",p:5160000},
+  {n:"Bangkok",c:"Thailand",cc:"TH",tz:"Asia/Bangkok",p:10156000},
+  {n:"Chiang Mai",c:"Thailand",cc:"TH",tz:"Asia/Bangkok",p:131091},
+  {n:"Phnom Penh",c:"Cambodia",cc:"KH",tz:"Asia/Phnom_Penh",p:1501725},
+  {n:"Vientiane",c:"Laos",cc:"LA",tz:"Asia/Vientiane",p:683000},
+  {n:"Ho Chi Minh City",c:"Vietnam",cc:"VN",tz:"Asia/Ho_Chi_Minh",p:8993082},
+  {n:"Hanoi",c:"Vietnam",cc:"VN",tz:"Asia/Ho_Chi_Minh",p:8246600},
+  {n:"Da Nang",c:"Vietnam",cc:"VN",tz:"Asia/Ho_Chi_Minh",p:1068000},
+  {n:"Jakarta",c:"Indonesia",cc:"ID",tz:"Asia/Jakarta",p:10562088},
+  {n:"Surabaya",c:"Indonesia",cc:"ID",tz:"Asia/Jakarta",p:2925000},
+  {n:"Medan",c:"Indonesia",cc:"ID",tz:"Asia/Jakarta",p:2097610},
+  {n:"Makassar",c:"Indonesia",cc:"ID",tz:"Asia/Makassar",p:1339374},
+  {n:"Bali (Denpasar)",c:"Indonesia",cc:"ID",tz:"Asia/Makassar",p:925000},
+  {n:"Kuala Lumpur",c:"Malaysia",cc:"MY",tz:"Asia/Kuala_Lumpur",p:1768000},
+  {n:"Singapore",c:"Singapore",cc:"SG",tz:"Asia/Singapore",p:5850342},
+  {n:"Bandar Seri Begawan",c:"Brunei",cc:"BN",tz:"Asia/Brunei",p:100700},
+  {n:"Manila",c:"Philippines",cc:"PH",tz:"Asia/Manila",p:13923452},
+  {n:"Cebu",c:"Philippines",cc:"PH",tz:"Asia/Manila",p:964169},
+  {n:"Hong Kong",c:"China",cc:"HK",tz:"Asia/Hong_Kong",p:7496981},
+  {n:"Macau",c:"China",cc:"MO",tz:"Asia/Macau",p:649100},
+  {n:"Shenzhen",c:"China",cc:"CN",tz:"Asia/Shanghai",p:12528300},
+  {n:"Guangzhou",c:"China",cc:"CN",tz:"Asia/Shanghai",p:15300000},
+  {n:"Shanghai",c:"China",cc:"CN",tz:"Asia/Shanghai",p:26317104},
+  {n:"Beijing",c:"China",cc:"CN",tz:"Asia/Shanghai",p:21707000},
+  {n:"Chongqing",c:"China",cc:"CN",tz:"Asia/Shanghai",p:31020000},
+  {n:"Chengdu",c:"China",cc:"CN",tz:"Asia/Shanghai",p:8813000},
+  {n:"Wuhan",c:"China",cc:"CN",tz:"Asia/Shanghai",p:8176100},
+  {n:"Taipei",c:"Taiwan",cc:"TW",tz:"Asia/Taipei",p:2646204},
+  {n:"Seoul",c:"South Korea",cc:"KR",tz:"Asia/Seoul",p:9776000},
+  {n:"Busan",c:"South Korea",cc:"KR",tz:"Asia/Seoul",p:3448737},
+  {n:"Tokyo",c:"Japan",cc:"JP",tz:"Asia/Tokyo",p:13960000},
+  {n:"Osaka",c:"Japan",cc:"JP",tz:"Asia/Tokyo",p:2691185},
+  {n:"Nagoya",c:"Japan",cc:"JP",tz:"Asia/Tokyo",p:2295638},
+  {n:"Sapporo",c:"Japan",cc:"JP",tz:"Asia/Tokyo",p:1973395},
+  {n:"Fukuoka",c:"Japan",cc:"JP",tz:"Asia/Tokyo",p:1612392},
+  {n:"Ulaanbaatar",c:"Mongolia",cc:"MN",tz:"Asia/Ulaanbaatar",p:1490000},
+  // Australia & Pacific
+  {n:"Perth",c:"Australia",cc:"AU",tz:"Australia/Perth",p:2059484},
+  {n:"Darwin",c:"Australia",cc:"AU",tz:"Australia/Darwin",p:148564},
+  {n:"Alice Springs",c:"Australia",cc:"AU",tz:"Australia/Darwin",p:28000},
+  {n:"Adelaide",c:"Australia",cc:"AU",tz:"Australia/Adelaide",p:1402393},
+  {n:"Brisbane",c:"Australia",cc:"AU",tz:"Australia/Brisbane",p:2514184},
+  {n:"Gold Coast",c:"Australia",cc:"AU",tz:"Australia/Brisbane",p:679127},
+  {n:"Townsville",c:"Australia",cc:"AU",tz:"Australia/Brisbane",p:180840},
+  {n:"Cairns",c:"Australia",cc:"AU",tz:"Australia/Brisbane",p:150041},
+  {n:"Sydney",c:"Australia",cc:"AU",tz:"Australia/Sydney",p:5312000},
+  {n:"Canberra",c:"Australia",cc:"AU",tz:"Australia/Sydney",p:457000},
+  {n:"Wollongong",c:"Australia",cc:"AU",tz:"Australia/Sydney",p:302739},
+  {n:"Newcastle",c:"Australia",cc:"AU",tz:"Australia/Sydney",p:308308},
+  {n:"Melbourne",c:"Australia",cc:"AU",tz:"Australia/Melbourne",p:5078193},
+  {n:"Geelong",c:"Australia",cc:"AU",tz:"Australia/Melbourne",p:279000},
+  {n:"Hobart",c:"Australia",cc:"AU",tz:"Australia/Hobart",p:245000},
+  {n:"Auckland",c:"New Zealand",cc:"NZ",tz:"Pacific/Auckland",p:1657200},
+  {n:"Wellington",c:"New Zealand",cc:"NZ",tz:"Pacific/Auckland",p:215300},
+  {n:"Christchurch",c:"New Zealand",cc:"NZ",tz:"Pacific/Auckland",p:404500},
+  {n:"Suva",c:"Fiji",cc:"FJ",tz:"Pacific/Fiji",p:93970},
+  {n:"Nuku'alofa",c:"Tonga",cc:"TO",tz:"Pacific/Tongatapu",p:23658},
+  {n:"Port Vila",c:"Vanuatu",cc:"VU",tz:"Pacific/Efate",p:51437},
+  {n:"Honiara",c:"Solomon Islands",cc:"SB",tz:"Pacific/Guadalcanal",p:84520},
+  {n:"Noumea",c:"New Caledonia",cc:"NC",tz:"Pacific/Noumea",p:94285},
+  {n:"Port Moresby",c:"Papua New Guinea",cc:"PG",tz:"Pacific/Port_Moresby",p:364125},
+];
+
+const S={zones:[],refMs:Date.now(),isLive:true,acRes:[],acIdx:-1};
+let winStart=null,liveTimer=null,isDrag=false;
+const WIN_MS=72*3600000;
+
+function flag(cc){
+  if(!cc||cc.length!==2)return'🌐';
+  return[...cc.toUpperCase()].map(c=>String.fromCodePoint(0x1F1E6+c.charCodeAt(0)-65)).join('');
+}
+const _fmtCache={};
+function localParts(tz,ms){
+  if(!_fmtCache[tz])_fmtCache[tz]=new Intl.DateTimeFormat('en-US',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const pts=_fmtCache[tz].formatToParts(new Date(ms));
+  const p={};pts.forEach(({type,value})=>{p[type]=parseInt(value)});
+  if(p.hour===24)p.hour=0;return p;
+}
+function offsetMins(tz,ms){
+  const p=localParts(tz,ms);
+  return Math.round((Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second)-ms)/60000);
+}
+function fmtOffset(m){
+  const s=m>=0?'+':'-';const a=Math.abs(m);const h=Math.floor(a/60),mn=a%60;
+  return`UTC${s}${h}${mn?':'+String(mn).padStart(2,'0'):''}`;
+}
+function tzAbbr(tz,ms){
+  try{const pts=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'short'}).formatToParts(new Date(ms));return(pts.find(p=>p.type==='timeZoneName')||{}).value||''}catch{return''}
+}
+function workStatus(tz,ms){
+  const h=localParts(tz,ms).hour;
+  if(h>=9&&h<17)return'working';if((h>=7&&h<9)||(h>=17&&h<20))return'shoulder';return'sleeping';
+}
+function weekendDay(tz,ms){
+  const p=localParts(tz,ms);
+  const dow=new Date(Date.UTC(p.year,p.month-1,p.day)).getUTCDay();
+  if(dow===6)return'SAT';if(dow===0)return'SUN';return null;
+}
+
+// ── Public holiday lookup (Nager.Date API) ────────────────────────────────
+const _holCache={};  // "CC-YYYY" → Map<"YYYY-MM-DD", name> | null
+const _holFlight=new Set();
+
+async function fetchHolidays(cc,year){
+  const key=cc+'-'+year;
+  if(key in _holCache||_holFlight.has(key))return;
+  _holFlight.add(key);
+  try{
+    const res=await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${cc}`);
+    if(!res.ok){_holCache[key]=null;return}
+    const data=await res.json();
+    const map=new Map();
+    data.forEach(h=>{
+      if(h.global!==false)map.set(h.date,h.localName||h.name);
+    });
+    _holCache[key]=map;
+    if(S.zones.length)render();
+  }catch{_holCache[key]=null}
+  finally{_holFlight.delete(key)}
+}
+
+function getHoliday(cc,dateStr){
+  const year=dateStr.slice(0,4);
+  const key=cc+'-'+year;
+  if(!(key in _holCache))fetchHolidays(cc,parseInt(year,10));
+  const map=_holCache[key];
+  return(map&&map.get(dateStr))||null;
+}
+
+function truncHol(name,max=22){return name.length>max?name.slice(0,max-1)+'…':name}
+function hourColor(h){
+  if(h>=9&&h<17)return'#3ddc84';if((h>=7&&h<9)||(h>=17&&h<20))return'#f0a500';if(h>=20)return'#a0440a';return'#0e1118';
+}
+function relOffset(refTz,thisTz,ms){
+  const diff=offsetMins(thisTz,ms)-offsetMins(refTz,ms);
+  if(!diff)return'same time';
+  const s=diff>0?'+':'\u2212';const a=Math.abs(diff);const h=Math.floor(a/60),m=a%60;
+  return`${s}${h}${m?':'+String(m).padStart(2,'0'):''}h ${diff>0?'ahead':'behind'}`;
+}
+function fmtShort(tz,ms){
+  return new Intl.DateTimeFormat('en-AU',{timeZone:tz,weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(ms));
+}
+function localDateStr(tz,ms){const p=localParts(tz,ms);return`${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`}
+function localTimeStr(tz,ms){const p=localParts(tz,ms);return`${String(p.hour).padStart(2,'0')}:${String(p.minute).padStart(2,'0')}`}
+function localToUTC(tz,dateStr,timeStr){
+  const[yr,mo,dy]=dateStr.split('-').map(Number);const[hr,mn]=timeStr.split(':').map(Number);
+  if([yr,mo,dy,hr,mn].some(isNaN))return null;
+  const rough=Date.UTC(yr,mo-1,dy,hr,mn,0);const o1=offsetMins(tz,rough);const est=rough-o1*60000;
+  return rough-offsetMins(tz,est)*60000;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function isWorkSlot(z,t){
+  const p=localParts(z.tz,t);
+  if(p.hour<9||p.hour>=17)return false;
+  const dow=new Date(Date.UTC(p.year,p.month-1,p.day)).getUTCDay();
+  if(dow===0||dow===6)return false;
+  if(getHoliday(z.cc,`${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`))return false;
+  return true;
+}
+function bestOverlap(zones,refMs){
+  if(zones.length<2)return null;
+  for(let o=0;o<96;o++){
+    const t=Math.floor(refMs/1800000)*1800000+o*1800000;
+    if(zones.every(z=>isWorkSlot(z,t)))return t;
+  }
+  return null;
+}
+function overlapDuration(zones,startMs){
+  let mins=0;
+  for(let d=30;d<=480;d+=30){
+    if(zones.every(z=>isWorkSlot(z,startMs+d*60000)))mins=d;else break;
+  }
+  return mins;
+}
+function renderOverlap(){
+  const el=document.getElementById('overlap-bar');
+  if(S.zones.length<2){el.className='overlap-bar';delete el.dataset.t;return}
+  const t=bestOverlap(S.zones,S.refMs);
+  if(t===null){el.className='overlap-bar none';el.textContent='No working-hours overlap in the next 48h (exc. weekends & holidays)';delete el.dataset.t;return}
+  const dur=overlapDuration(S.zones,t);
+  const durH=Math.floor(dur/60),durM=dur%60;
+  const durStr=durH>0?(durM>0?`${durH}h ${durM}m`:`${durH}h`):(dur?`${dur}m`:'');
+  const isNow=t<=S.refMs&&S.refMs<t+1800000;
+  const refTz=S.zones[0].tz;
+  const timeLabel=isNow?'Now':fmtShort(refTz,t);
+  el.className='overlap-bar has';
+  el.dataset.t=String(t);
+  el.textContent=`↔ ${timeLabel}${durStr?' · '+durStr+' window':''} — click to jump`;
+}
+
+const searchEl=document.getElementById('search'),acEl=document.getElementById('ac');
+function doSearch(q){
+  if(!q.trim())return[];const lq=q.toLowerCase().replace(/[''`]/g,'');const seen=new Set();
+  return DB.filter(c=>{const k=c.n+c.tz;if(seen.has(k))return false;seen.add(k);
+    const nl=c.n.toLowerCase(),cl=c.c.toLowerCase(),tl=c.tz.toLowerCase().replace(/_/g,' ').replace(/\//g,' ');
+    return nl.includes(lq)||cl.includes(lq)||tl.includes(lq);
+  }).sort((a,b)=>{
+    const ae=a.n.toLowerCase()===lq?0:a.n.toLowerCase().startsWith(lq)?1:2;
+    const be=b.n.toLowerCase()===lq?0:b.n.toLowerCase().startsWith(lq)?1:2;
+    if(ae!==be)return ae-be;return b.p-a.p;
+  }).slice(0,8);
+}
+function renderAC(){
+  const res=S.acRes;if(!res.length){acEl.classList.add('hidden');return}
+  const used=new Set(S.zones.map(z=>z.tz));
+  acEl.innerHTML=res.map((c,i)=>`<div class="ac-item${used.has(c.tz)?' used':''}${i===S.acIdx?' hi':''}" data-i="${i}">
+    <div class="ac-flag">${flag(c.cc)}</div>
+    <div><div class="ac-name">${esc(c.n)}</div><div class="ac-country">${esc(c.c)}</div></div>
+    <div class="ac-meta">${tzAbbr(c.tz,S.refMs)}<br>${fmtOffset(offsetMins(c.tz,S.refMs))}</div>
+  </div>`).join('');
+  acEl.classList.remove('hidden');
+}
+searchEl.addEventListener('input',()=>{S.acRes=doSearch(searchEl.value);S.acIdx=-1;renderAC()});
+searchEl.addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'){e.preventDefault();S.acIdx=Math.min(S.acIdx+1,S.acRes.length-1);renderAC()}
+  else if(e.key==='ArrowUp'){e.preventDefault();S.acIdx=Math.max(S.acIdx-1,0);renderAC()}
+  else if(e.key==='Enter'&&S.acRes.length){e.preventDefault();addCity(S.acRes[Math.max(0,S.acIdx)])}
+  else if(e.key==='Escape')closeAC();
+});
+searchEl.addEventListener('blur',()=>setTimeout(closeAC,200));
+document.addEventListener('touchstart',e=>{
+  const wrap=document.getElementById('search-wrap-el');
+  if(wrap&&!wrap.contains(e.target))closeAC();
+},true);
+acEl.addEventListener('mousedown',e=>e.preventDefault());
+acEl.addEventListener('click',e=>{const it=e.target.closest('.ac-item');if(it&&!it.classList.contains('used'))addCity(S.acRes[+it.dataset.i])});
+function closeAC(){acEl.classList.add('hidden');S.acRes=[];S.acIdx=-1}
+
+const _gradCache={};
+function buildGradient(tz){
+  const key=tz+'|'+winStart;
+  if(_gradCache[key])return _gradCache[key];
+  const stops=[];
+  for(let h=0;h<72;h++){
+    const t=winStart+h*3600000;const lh=localParts(tz,t).hour;const col=hourColor(lh);
+    const a=(h/72*100).toFixed(2),b=((h+1)/72*100).toFixed(2);
+    stops.push(`${col} ${a}%`,`${col} ${b}%`);
+  }
+  const grad=`linear-gradient(to right,${stops.join(',')})`;
+  _gradCache[key]=grad;
+  return grad;
+}
+function addCity(city){
+  if(S.zones.length>=12){toast('Maximum 12 locations');return}
+  if(S.zones.some(z=>z.tz===city.tz&&z.n===city.n))return;
+  S.zones.push(city);searchEl.value='';closeAC();syncURL();render();
+}
+function removeCity(i){S.zones.splice(i,1);syncURL();render()}
+document.getElementById('btn-clear').addEventListener('click',()=>{S.zones=[];syncURL();render()});
+
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const tz=chip.dataset.tz,n=chip.dataset.n,cc=chip.dataset.cc;
+    const city=DB.find(c=>c.n===n&&c.tz===tz)||{n,c:'',cc,tz,p:0};
+    addCity(city);
+  });
+});
+
+function initWin(){winStart=Math.floor(S.refMs/3600000)*3600000-12*3600000}
+function scrubPct(){return Math.max(0,Math.min(100,((S.refMs-winStart)/WIN_MS)*100))}
+function renderTimeline(){
+  if(!S.zones.length)return;if(!winStart)initWin();
+  const tz=S.zones[0].tz;
+  document.getElementById('tl-bar-inner').style.background=buildGradient(tz);
+  document.getElementById('tl-scrub').style.left=scrubPct()+'%';
+  document.getElementById('tl-lbl-l').textContent=fmtShort(tz,winStart);
+  document.getElementById('tl-lbl-r').textContent=fmtShort(tz,winStart+WIN_MS);
+}
+
+const tlOuter=document.getElementById('tl-bar-outer'),scrubEl=document.getElementById('tl-scrub');
+const tlTip=document.getElementById('tl-tip');
+
+function timeFromX(cx){const r=tlOuter.getBoundingClientRect();return winStart+Math.max(0,Math.min(1,(cx-r.left)/r.width))*WIN_MS}
+function shiftWinIfNeeded(){const p=scrubPct();if(p>88)winStart+=8*3600000;if(p<12)winStart-=8*3600000}
+
+scrubEl.addEventListener('mousedown',e=>{e.preventDefault();isDrag=true;scrubEl.classList.add('drag');setLive(false)});
+tlOuter.addEventListener('click',e=>{if(e.target===scrubEl)return;setLive(false);S.refMs=timeFromX(e.clientX);shiftWinIfNeeded();syncURL();render()});
+document.addEventListener('mousemove',e=>{
+  if(isDrag){S.refMs=timeFromX(e.clientX);shiftWinIfNeeded();syncURL();render()}
+});
+document.addEventListener('mouseup',()=>{if(isDrag){isDrag=false;scrubEl.classList.remove('drag')}});
+
+tlOuter.addEventListener('mousemove',e=>{
+  if(isDrag||!S.zones.length)return;
+  const t=timeFromX(e.clientX);const tz=S.zones[0].tz;
+  const r=tlOuter.getBoundingClientRect();
+  const rawPct=((e.clientX-r.left)/r.width)*100;
+  const clampedPct=Math.max(2,Math.min(98,rawPct));
+  tlTip.style.left=clampedPct+'%';
+  const lines=S.zones.map(z=>`${flag(z.cc)} ${z.n.split(',')[0]}: ${localTimeStr(z.tz,t)}`);
+  tlTip.innerHTML=lines.join('<br>');
+  tlTip.classList.add('show');
+});
+tlOuter.addEventListener('mouseleave',()=>tlTip.classList.remove('show'));
+
+scrubEl.addEventListener('touchstart',e=>{e.preventDefault();isDrag=true;setLive(false)},{passive:false});
+document.addEventListener('touchmove',e=>{
+  if(!isDrag)return;e.preventDefault();
+  S.refMs=timeFromX(e.touches[0].clientX);shiftWinIfNeeded();syncURL();render();
+},{passive:false});
+document.addEventListener('touchend',()=>{isDrag=false});
+
+function setLive(on){
+  S.isLive=on;clearInterval(liveTimer);
+  const btn=document.getElementById('btn-now');
+  if(on){btn.classList.add('live');btn.textContent='Live';liveTimer=setInterval(()=>{S.refMs=Date.now();render()},1000)}
+  else{btn.classList.remove('live');btn.textContent='Now'}
+}
+function stepTime(d){setLive(false);S.refMs+=d;shiftWinIfNeeded();syncURL();render()}
+document.getElementById('btn-prev-h').addEventListener('click',()=>stepTime(-3600000));
+document.getElementById('btn-prev-m').addEventListener('click',()=>stepTime(-900000));
+document.getElementById('btn-next-h').addEventListener('click',()=>stepTime(3600000));
+document.getElementById('btn-next-m').addEventListener('click',()=>stepTime(900000));
+document.getElementById('btn-now').addEventListener('click',()=>{S.refMs=Date.now();initWin();syncURL();setLive(true);render()});
+document.getElementById('btn-copy').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(location.href);
+    const b=document.getElementById('btn-copy');b.textContent='✓ Copied';b.classList.add('done');
+    setTimeout(()=>{b.textContent='Copy link';b.classList.remove('done')},2200);
+  }catch{toast('Copy the URL from the address bar')}
+});
+
+document.getElementById('overlap-bar').addEventListener('click',()=>{
+  const t=+document.getElementById('overlap-bar').dataset.t;
+  if(!t||isNaN(t))return;
+  setLive(false);S.refMs=t;initWin();syncURL();render();
+});
+
+document.addEventListener('keydown',e=>{
+  const a=document.activeElement;
+  const inInput=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');
+  if(e.key==='/'&&!inInput){e.preventDefault();document.getElementById('search').focus();return}
+  if(!S.zones.length)return;
+  if(inInput)return;
+  if(e.key==='ArrowLeft'){e.preventDefault();stepTime(e.shiftKey?-900000:-3600000)}
+  if(e.key==='ArrowRight'){e.preventDefault();stepTime(e.shiftKey?900000:3600000)}
+  if(e.key==='n'||e.key==='N'){S.refMs=Date.now();initWin();syncURL();setLive(true);render()}
+});
+
+async function doCopyText(){
+  if(!S.zones.length)return;
+  const refTz=S.zones[0].tz;
+  const p=localParts(refTz,S.refMs);
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dow=new Date(Date.UTC(p.year,p.month-1,p.day)).getUTCDay();
+  const lines=[`${DAYS[dow]} ${p.day} ${MONTHS[p.month-1]} ${p.year}`,``];
+  S.zones.forEach(z=>{
+    const abbr=tzAbbr(z.tz,S.refMs)||fmtOffset(offsetMins(z.tz,S.refMs));
+    const ts=localTimeStr(z.tz,S.refMs);
+    const[hh,mm]=ts.split(':').map(Number);
+    const h12=hh===0?12:hh>12?hh-12:hh;
+    const ap=hh<12?'am':'pm';
+    const timeDisp=`${h12}:${String(mm).padStart(2,'0')} ${ap}`;
+    const status=workStatus(z.tz,S.refMs);
+    const wknd=weekendDay(z.tz,S.refMs);
+    const hol=getHoliday(z.cc,localDateStr(z.tz,S.refMs));
+    const icon=(wknd||hol)?'✗':status==='working'?'✓':status==='shoulder'?'~':'✗';
+    const extra=hol?` (${hol})`:wknd?` (${wknd})`:'';
+    lines.push(`${flag(z.cc)} ${z.n}, ${z.c} (${abbr}) — ${timeDisp} ${icon}${extra}`);
+  });
+  const t=bestOverlap(S.zones,S.refMs);
+  if(t!==null){
+    const dur=overlapDuration(S.zones,t);
+    const durH=Math.floor(dur/60),durM=dur%60;
+    const durStr=durH>0?(durM>0?`${durH}h ${durM}m`:`${durH}h`):`${dur}m`;
+    const isNow=t<=S.refMs&&S.refMs<t+1800000;
+    lines.push(``);
+    lines.push(`↔ Best overlap: ${isNow?'Now':fmtShort(refTz,t)}${durStr?' ('+durStr+' window)':''}`);
+  }
+  lines.push(``);lines.push(location.href);
+  try{
+    await navigator.clipboard.writeText(lines.join('\n'));
+    const b=document.getElementById('btn-copy-text');
+    b.textContent='✓ Copied';b.classList.add('done');
+    setTimeout(()=>{b.textContent='Copy text';b.classList.remove('done')},2200);
+  }catch{toast('Copy the text manually')}
+}
+document.getElementById('btn-copy-text').addEventListener('click',doCopyText);
+
+function syncURL(){
+  const parts=[];
+  if(!S.isLive)parts.push(new Date(S.refMs).toISOString().slice(0,16)+'Z');
+  S.zones.forEach(z=>parts.push(z.tz));
+  const hash=parts.length?'#'+parts.join('+'):'';
+  history.replaceState(null,'',location.pathname+hash);
+}
+function loadURL(){
+  const hash=location.hash.slice(1);
+  if(hash){
+    const parts=hash.split('+');
+    let i=0;
+    if(parts[0]&&/^\d{4}-\d{2}-\d{2}T/.test(parts[0])){
+      const t=new Date(parts[0]).getTime();
+      if(!isNaN(t)){S.refMs=t;S.isLive=false;}
+      i=1;
+    }
+    const seen=new Set();
+    for(;i<parts.length;i++){
+      const tz=decodeURIComponent(parts[i]);
+      if(!tz||seen.has(tz))continue;
+      seen.add(tz);
+      const city=DB.find(c=>c.tz===tz);
+      if(city&&S.zones.length<12)S.zones.push(city);
+    }
+    return;
+  }
+  // Fallback: old query-string format (backward compatible)
+  const p=new URLSearchParams(location.search);
+  const t=p.get('t');if(t){S.refMs=new Date(t).getTime();S.isLive=false}
+  const seen=new Set();
+  p.getAll('z').forEach(str=>{
+    let tz,nm;
+    if(str.includes('|')){const sep=str.lastIndexOf('|');nm=str.slice(0,sep);tz=str.slice(sep+1)}
+    else{tz=str}
+    if(seen.has(tz))return;seen.add(tz);
+    const city=nm?DB.find(c=>c.n===nm&&c.tz===tz)||DB.find(c=>c.tz===tz):DB.find(c=>c.tz===tz);
+    if(city&&S.zones.length<12)S.zones.push(city);
+  });
+}
+
+function toast(msg){
+  let el=document.getElementById('toast-el');
+  if(!el){el=document.createElement('div');el.id='toast-el';
+    Object.assign(el.style,{position:'fixed',bottom:'20px',right:'20px',background:'var(--surface2)',border:'1px solid var(--border-mid)',borderRadius:'8px',padding:'8px 14px',fontSize:'12px',color:'var(--text)',zIndex:'999',transition:'opacity 0.2s',opacity:'0',pointerEvents:'none'});
+    document.body.appendChild(el);}
+  el.textContent=msg;el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2800);
+}
+
+let dragFrom=null;
+function setupDnd(listEl){
+  listEl.querySelectorAll('.city-row').forEach((row,i)=>{
+    row.draggable=true;
+    row.addEventListener('dragstart',e=>{
+      if(e.target.tagName==='INPUT'){e.preventDefault();return}
+      dragFrom=i;e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>row.classList.add('dragging'),0);
+    });
+    row.addEventListener('dragend',()=>{row.classList.remove('dragging');listEl.querySelectorAll('.city-row').forEach(r=>r.classList.remove('drag-over'))});
+    row.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';listEl.querySelectorAll('.city-row').forEach(r=>r.classList.remove('drag-over'));row.classList.add('drag-over')});
+    row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+    row.addEventListener('drop',e=>{
+      e.preventDefault();row.classList.remove('drag-over');
+      if(dragFrom!==null&&dragFrom!==i){
+        const moved=S.zones.splice(dragFrom,1)[0];S.zones.splice(i,0,moved);
+        dragFrom=null;syncURL();render();
+      }
+    });
+  });
+}
+
+function renderList(){
+  const refTz=S.zones[0]?.tz;
+  const listEl=document.getElementById('city-list');
+  listEl.innerHTML=S.zones.map((city,i)=>{
+    const abbr=tzAbbr(city.tz,S.refMs),off=fmtOffset(offsetMins(city.tz,S.refMs));
+    const status=workStatus(city.tz,S.refMs);
+    const wknd=weekendDay(city.tz,S.refMs);
+    const dVal=localDateStr(city.tz,S.refMs);
+    const holiday=getHoliday(city.cc,dVal);
+    const rel=i>0&&refTz?relOffset(refTz,city.tz,S.refMs):'';
+    const tVal=localTimeStr(city.tz,S.refMs);
+    const rowCls='city-row'+(i===0?' is-ref':'')+(wknd?' weekend':'')+(holiday?' holiday':'');
+    return`<div class="${rowCls}">
+      <div class="drag-handle" tabindex="-1"><span></span><span></span><span></span></div>
+      <div class="row-flag">${flag(city.cc)}</div>
+      <div class="row-meta">
+        <div class="row-city">${esc(city.n)}, ${esc(city.c)}</div>
+        <div class="row-tz">${abbr?`<span>${abbr}</span>`:''}<span>${off}</span>${wknd?`<span class="row-wknd">${wknd}</span>`:''}${holiday?`<span class="row-hol" title="${esc(holiday)}">${esc(truncHol(holiday))}</span>`:''}</div>
+        ${rel?`<div class="row-rel">${rel}</div>`:''}
+      </div>
+      <div class="row-time-block">
+        <input class="time-inp" type="time" value="${tVal}" data-tz="${esc(city.tz)}" draggable="false" title="Edit time — all cities update">
+        <input class="date-inp" type="date" value="${dVal}" data-tz="${esc(city.tz)}" draggable="false" title="Edit date — all cities update">
+      </div>
+      <div class="row-dot ${status}" title="${status}"></div>
+      <button class="rm-btn" data-i="${i}" title="Remove">×</button>
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('.rm-btn').forEach(b=>b.addEventListener('click',()=>removeCity(+b.dataset.i)));
+
+  function handleEdit(e){
+    const row=e.target.closest('.city-row');const tz=e.target.dataset.tz;
+    const tEl=row.querySelector('.time-inp'),dEl=row.querySelector('.date-inp');
+    if(!tEl.value||!dEl.value)return;
+    const ms=localToUTC(tz,dEl.value,tEl.value);
+    if(ms!==null&&!isNaN(ms)){setLive(false);S.refMs=ms;syncURL();setTimeout(render,0)}
+  }
+  listEl.querySelectorAll('.time-inp,.date-inp').forEach(inp=>inp.addEventListener('blur',handleEdit));
+
+  setupDnd(listEl);
+}
+
+function prefetchAllHolidays(){
+  if(!S.zones.length)return;
+  const year=localParts(S.zones[0].tz,S.refMs).year;
+  const seen=new Set();
+  S.zones.forEach(z=>{
+    if(!seen.has(z.cc)){seen.add(z.cc);fetchHolidays(z.cc,year-1);fetchHolidays(z.cc,year);fetchHolidays(z.cc,year+1)}
+  });
+}
+
+function render(){
+  const has=S.zones.length>0;
+  const g='gone';
+  document.getElementById('empty').style.display=has?'none':'block';
+  document.getElementById('chips-wrap').classList.toggle(g,has);
+  if(!has)document.querySelectorAll('.chip').forEach(c=>{c.style.opacity='';c.style.pointerEvents=''});
+  document.getElementById('list-hdr').classList.toggle(g,!has);
+  document.getElementById('tl-wrap').classList.toggle(g,!has);
+  document.getElementById('controls').classList.toggle(g,!has);
+  document.getElementById('legend').classList.toggle(g,!has);
+  if(!has){document.getElementById('overlap-bar').className='overlap-bar';return}
+  document.getElementById('city-count').textContent=`${S.zones.length} location${S.zones.length!==1?'s':''}`;
+  if(!winStart)initWin();
+  renderList();renderTimeline();renderOverlap();
+  const nb=document.getElementById('btn-now');nb.classList.toggle('live',S.isLive);nb.textContent=S.isLive?'Live':'Now';
+  const addedTzs=new Set(S.zones.map(z=>z.tz));
+  document.querySelectorAll('.chip').forEach(chip=>{
+    const used=addedTzs.has(chip.dataset.tz);
+    chip.style.opacity=used?'0.35':'';
+    chip.style.pointerEvents=used?'none':'';
+  });
+  prefetchAllHolidays();
+}
+
+loadURL();render();if(S.isLive)setLive(true);
+</script>
+</body>
+</html>
