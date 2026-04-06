@@ -52,13 +52,13 @@ button{font-family:var(--sans);cursor:pointer}
 .hdr{padding:36px 0 28px;border-bottom:1px solid var(--border);margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
 .hdr-brand{display:flex;align-items:center;gap:12px}
 .hdr-logo{width:44px;height:44px;background:transparent;border-radius:0;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
-.hdr-logo video,.hdr-logo img{width:44px;height:44px;object-fit:contain;display:block}
-@keyframes hue-spin{
+#video-logo{display:block}
+.hdr-logo video,.hdr-logo img{width:44px;height:44px;object-fit:contain;display:block;background:transparent}@keyframes hue-spin{
   0%  {filter:hue-rotate(0deg)  drop-shadow(0 0 5px rgba(61,220,132,0.35))}
   50% {filter:hue-rotate(40deg) drop-shadow(0 0 9px rgba(61,220,132,0.55))}
   100%{filter:hue-rotate(0deg)  drop-shadow(0 0 5px rgba(61,220,132,0.35))}
 }
-.codingo-mark{animation:hue-spin 12s ease-in-out infinite}
+.codingo-mark{display:block}
 .hdr h1{font-size:1.35rem;font-weight:600;letter-spacing:-0.025em;line-height:1.1;font-family:var(--mono)}
 .hdr-sub{font-size:0.75rem;color:var(--text2);white-space:nowrap;padding-bottom:2px;font-family:var(--mono);opacity:0.6;transition:opacity 0.15s}
 .hdr-sub:hover{opacity:1}
@@ -159,7 +159,7 @@ button{font-family:var(--sans);cursor:pointer}
 
 /* Reduced-motion: stop decorative animations */
 @media(prefers-reduced-motion:reduce){
-  .codingo-mark{animation:none;filter:none}
+  #video-logo{animation:none}
   .row-dot{transition:none}
   .btn-now.live::before{animation:none}
 }
@@ -210,9 +210,9 @@ button{font-family:var(--sans);cursor:pointer}
 .leg-keys{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--text3)}
 
 .empty{text-align:center;padding:48px 20px 32px}
-.empty-globe{font-size:36px;margin-bottom:12px;opacity:0.3}
-.empty-title{font-size:15px;font-weight:500;color:var(--text2);margin-bottom:5px}
-.empty-sub{font-size:12px;color:var(--text3);margin-bottom:20px}
+.empty-globe{font-size:36px;margin-bottom:12px;opacity:0.55}
+.empty-title{font-size:15px;font-weight:600;color:#c8d8f0;margin-bottom:5px;text-shadow:0 1px 6px rgba(0,0,0,0.6)}
+.empty-sub{font-size:12px;color:#8090b0;margin-bottom:20px;text-shadow:0 1px 4px rgba(0,0,0,0.5)}
 
 .ac::-webkit-scrollbar{width:5px}
 .ac::-webkit-scrollbar-track{background:transparent}
@@ -363,9 +363,9 @@ button{font-family:var(--sans);cursor:pointer}
   <header class="hdr">
     <div class="hdr-brand">
       <a href="https://codingo.com" target="_blank" rel="noopener" class="hdr-logo" title="codingo.com">
-        <video class="codingo-mark" autoplay loop muted playsinline preload="auto" aria-label="codingo logo">
+        <video id="video-logo" loop="true" preload="true" autoplay muted playsinline>
           <source src="https://codingo.com/video/codingo-logo.webm" type="video/webm">
-          <img src="https://codingo.com/images/codingo-logo.png" alt="codingo logo">
+          <img src="https://codingo.com/images/codingo-logo.png" alt="codingo logo"><br>
         </video>
       </a>
       <h1>Time Planner</h1>
