@@ -1288,6 +1288,15 @@ function loadURL(){
         tz=tzCity.slice(0,colonIdx);
       }
       if(seen.has(tz+':'+cityName))continue;seen.add(tz+':'+cityName);
+      // Reconstruct synthetic abbreviation zones (e.g. PST, AEST, CT)
+      // syncURL stores these as "America/Los_Angeles:PST" — cityName is the UPPER abbreviation
+      // TZ_ABBR/TZ_ABBR_NAME keys are lowercase, so look up with lowerCN
+      const lowerCN=cityName.toLowerCase();
+      if(cityName&&TZ_ABBR[lowerCN]===tz&&TZ_ABBR_NAME[lowerCN]){
+        const base=DB.find(c=>c.tz===tz);
+        if(base&&S.zones.length<12)S.zones.push({...base,n:cityName.toUpperCase(),c:TZ_ABBR_NAME[lowerCN],_abbr:true,h0,h1});
+        continue;
+      }
       // Find by city name first (preserves Austin vs Chicago), fall back to first tz match
       const city=cityName
         ?(DB.find(c=>c.tz===tz&&c.n===cityName)||DB.find(c=>c.tz===tz))
