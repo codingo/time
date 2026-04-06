@@ -120,7 +120,7 @@ button{font-family:var(--sans);cursor:pointer}
 .row-rel{font-size:10px;color:var(--text3);margin-top:1px}
 
 .row-hours{display:flex;align-items:center;gap:5px;margin-top:5px;padding-top:4px;border-top:1px solid var(--border)}
-.row-hours-lbl{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;flex-shrink:0;user-select:none;min-width:30px}
+.row-hours-lbl{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:0.04em;text-transform:uppercase;flex-shrink:0;user-select:none;min-width:30px}
 .row-hours-sep{color:var(--text3);font-size:10px;flex-shrink:0}
 .hours-sel{font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border-mid);border-radius:4px;color:var(--text2);padding:2px 5px;cursor:pointer;outline:none;color-scheme:dark;transition:border-color 0.12s,color 0.12s}
 .hours-sel:hover{border-color:rgba(255,255,255,0.25);color:var(--text)}
@@ -142,7 +142,7 @@ button{font-family:var(--sans);cursor:pointer}
 .date-inp:hover{background:var(--surface2)}
 .date-inp:focus{border-bottom-color:var(--accent);background:var(--surface2)}
 
-.row-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.row-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background 0.35s,box-shadow 0.35s}
 .row-dot.working{background:var(--green);box-shadow:0 0 6px var(--green)}
 .row-dot.shoulder{background:var(--amber)}
 .row-dot.sleeping{background:var(--text3)}
@@ -151,6 +151,13 @@ button{font-family:var(--sans);cursor:pointer}
 .rm-btn:hover{color:var(--red);background:rgba(248,113,113,0.1)}
 
 .city-row.is-ref{border-left:2px solid rgba(61,220,132,0.35)}
+
+/* Reduced-motion: stop decorative animations */
+@media(prefers-reduced-motion:reduce){
+  .codingo-mark{animation:none;filter:none}
+  .row-dot{transition:none}
+  .btn-now.live::before{animation:none}
+}
 
 .overlap-bar{font-family:var(--mono);font-size:10px;color:var(--text3);margin:6px 0 0;padding:5px 10px;border-radius:var(--rad-sm);display:none;align-items:center;gap:8px}
 .overlap-bar.has{color:var(--green);background:rgba(61,220,132,0.06);border:1px solid rgba(61,220,132,0.15);display:flex;cursor:pointer;transition:background 0.1s}
@@ -222,39 +229,58 @@ button{font-family:var(--sans);cursor:pointer}
   .wrap{padding:0 14px}
 
   /* Header */
-  .hdr{padding:20px 0 16px;flex-direction:row;align-items:center;gap:0}
+  .hdr{padding:18px 0 14px;flex-direction:row;align-items:center;gap:0}
   .hdr-sub{display:none}
 
   /* Search — prevent iOS zoom (needs ≥16px) */
   #search{font-size:16px}
 
   /* Chips — horizontal scroll, no wrap */
-  .chips-wrap{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;gap:7px;scrollbar-width:none}
+  .chips-wrap{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;gap:7px;scrollbar-width:none;margin-bottom:12px}
   .chips-wrap::-webkit-scrollbar{display:none}
   .chip{flex-shrink:0}
 
   /* Autocomplete — limit height with keyboard up */
   .ac{max-height:220px}
 
-  /* City row — stack into 2-row card on mobile:
-     Row 1: flag · city name · status dot
-     Row 2: time+date inputs spanning full width    */
+  /* City row: flag | meta | status+remove stacked
+     Row 1: flag · city name · [dot+rm column]
+     Row 2: time+date inputs spanning full width          */
   .city-row{
     display:grid;
-    grid-template-columns:30px 1fr 12px;
+    grid-template-columns:30px 1fr 34px;
     grid-template-rows:auto auto;
     grid-template-areas:
-      "flag meta dot"
+      "flag meta actions"
       "time time time";
     gap:8px 8px;
-    padding:12px 10px 10px;
+    padding:11px 10px 10px;
   }
   .drag-handle{display:none}
   .row-flag{grid-area:flag;font-size:1.5rem}
   .row-meta{grid-area:meta;min-width:0}
   .row-city{font-size:13.5px}
-  .row-dot{grid-area:dot;align-self:center;justify-self:end}
-  .rm-btn{top:6px;right:6px}
+
+  /* Actions column: dot on top, rm-btn below — no overlap */
+  .row-dot{
+    grid-area:actions;
+    align-self:start;
+    justify-self:center;
+    margin-top:6px;
+    width:8px;height:8px; /* slightly larger on mobile */
+  }
+  .rm-btn{
+    position:static;
+    grid-area:actions;
+    opacity:1;
+    width:32px;height:32px;
+    font-size:18px;
+    align-self:end;
+    justify-self:center;
+    margin-bottom:2px;
+    /* override desktop absolute positioning */
+    top:auto;right:auto;
+  }
 
   /* Time block spans full width on row 2 */
   .row-time-block{
@@ -314,8 +340,10 @@ button{font-family:var(--sans);cursor:pointer}
   .legend{gap:10px;margin-bottom:16px}
   .leg-keys{display:none}
 
-  /* Overlap bar */
-  .overlap-bar{font-size:11px;padding:6px 10px}
+  /* Overlap bar — allow message to wrap so nothing gets clipped */
+  .overlap-bar{font-size:11px;padding:7px 10px;flex-wrap:wrap;gap:6px}
+  .ol-msg{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4;flex-basis:100%}
+  .ol-nav{margin-left:0;padding-left:0;width:100%;justify-content:flex-end}
 
   .site-footer{padding:14px 14px calc(16px + env(safe-area-inset-bottom,0px))}
   .footer-brand{font-size:10px}
@@ -379,7 +407,7 @@ button{font-family:var(--sans);cursor:pointer}
 
   <div class="city-list" id="city-list"></div>
 
-  <div class="overlap-bar" id="overlap-bar">
+  <div class="overlap-bar" id="overlap-bar" aria-live="polite" aria-atomic="true">
     <span class="ol-msg" id="ol-msg"></span>
     <span class="ol-nav hidden" id="ol-nav">
       <button class="ol-btn" id="ol-prev" title="Previous window">‹</button>
@@ -1017,7 +1045,7 @@ function addCity(city){
   searchEl.value='';closeAC();syncURL();render();
 }
 function removeCity(i){S.zones.splice(i,1);syncURL();render()}
-document.getElementById('btn-clear').addEventListener('click',()=>{S.zones=[];syncURL();render()});
+document.getElementById('btn-clear').addEventListener('click',()=>{S.zones=[];_olWins=null;syncURL();render()});
 
 document.querySelectorAll('.chip').forEach(chip=>{
   chip.addEventListener('click',()=>{
@@ -1168,7 +1196,9 @@ function syncURL(){
   S.zones.forEach(z=>{
     const h0=z.h0??DEF_H0, h1=z.h1??DEF_H1;
     const custom=(h0!==DEF_H0||h1!==DEF_H1)?`@${minsToTime(h0)}-${minsToTime(h1)}`:'';
-    parts.push(z.tz+custom);
+    // Encode city name with TZ so Austin vs Chicago is preserved on reload
+    const citySlug=z.n.replace(/ /g,'_').replace(/[+@:#]/g,'');
+    parts.push(`${z.tz}:${citySlug}${custom}`);
   });
   const hash=parts.length?'#'+parts.join('+'):'';
   history.replaceState(null,'',location.pathname+hash);
@@ -1187,17 +1217,27 @@ function loadURL(){
     for(;i<parts.length;i++){
       let raw=decodeURIComponent(parts[i]);
       if(!raw)continue;
-      // Parse optional working hours suffix: TZ@HH:MM-HH:MM
+      // Parse optional working hours suffix: TZ:CityName@HH:MM-HH:MM
       let h0=DEF_H0,h1=DEF_H1;
       const atIdx=raw.lastIndexOf('@');
-      let tz=raw;
+      let tzCity=raw;
       if(atIdx>0){
         const hrPart=raw.slice(atIdx+1);
         const hrMatch=hrPart.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-        if(hrMatch){h0=timeToMins(hrMatch[1]);h1=timeToMins(hrMatch[2]);tz=raw.slice(0,atIdx);}
+        if(hrMatch){h0=timeToMins(hrMatch[1]);h1=timeToMins(hrMatch[2]);tzCity=raw.slice(0,atIdx);}
       }
-      if(seen.has(tz))continue;seen.add(tz);
-      const city=DB.find(c=>c.tz===tz);
+      // Parse optional city name suffix: TZ:CityName (IANA tz strings never contain ':')
+      let tz=tzCity,cityName='';
+      const colonIdx=tzCity.indexOf(':');
+      if(colonIdx>0){
+        cityName=tzCity.slice(colonIdx+1).replace(/_/g,' ');
+        tz=tzCity.slice(0,colonIdx);
+      }
+      if(seen.has(tz+':'+cityName))continue;seen.add(tz+':'+cityName);
+      // Find by city name first (preserves Austin vs Chicago), fall back to first tz match
+      const city=cityName
+        ?(DB.find(c=>c.tz===tz&&c.n===cityName)||DB.find(c=>c.tz===tz))
+        :DB.find(c=>c.tz===tz);
       if(city&&S.zones.length<12)S.zones.push({...city,h0,h1});
     }
     return;
@@ -1219,7 +1259,7 @@ function loadURL(){
 function toast(msg){
   let el=document.getElementById('toast-el');
   if(!el){el=document.createElement('div');el.id='toast-el';
-    Object.assign(el.style,{position:'fixed',bottom:'20px',right:'20px',background:'var(--surface2)',border:'1px solid var(--border-mid)',borderRadius:'8px',padding:'8px 14px',fontSize:'12px',color:'var(--text)',zIndex:'999',transition:'opacity 0.2s',opacity:'0',pointerEvents:'none'});
+    Object.assign(el.style,{position:'fixed',bottom:'calc(20px + env(safe-area-inset-bottom,0px))',right:'20px',background:'var(--surface2)',border:'1px solid var(--border-mid)',borderRadius:'8px',padding:'8px 14px',fontSize:'12px',color:'var(--text)',zIndex:'999',transition:'opacity 0.2s',opacity:'0',pointerEvents:'none'});
     document.body.appendChild(el);}
   el.textContent=msg;el.style.opacity='1';
   clearTimeout(el._t);el._t=setTimeout(()=>el.style.opacity='0',2800);
@@ -1227,10 +1267,13 @@ function toast(msg){
 
 let dragFrom=null;
 function setupDnd(listEl){
+  // Drag-and-drop is desktop-only — skip on touch devices
+  if(window.matchMedia('(hover:none)').matches)return;
   listEl.querySelectorAll('.city-row').forEach((row,i)=>{
     row.draggable=true;
     row.addEventListener('dragstart',e=>{
-      if(e.target.tagName==='INPUT'){e.preventDefault();return}
+      // Don't initiate drag when clicking inputs or interactive children
+      if(['INPUT','SELECT','BUTTON'].includes(e.target.tagName)){e.preventDefault();return}
       dragFrom=i;e.dataTransfer.effectAllowed='move';
       setTimeout(()=>row.classList.add('dragging'),0);
     });
@@ -1298,7 +1341,9 @@ function renderList(){
   listEl.querySelectorAll('.rm-btn').forEach(b=>b.addEventListener('click',()=>removeCity(+b.dataset.i)));
 
   function handleEdit(e){
-    const row=e.target.closest('.city-row');const tz=e.target.dataset.tz;
+    const row=e.target.closest('.city-row');
+    if(!row)return; // row may have been removed before blur fired
+    const tz=e.target.dataset.tz;
     const tEl=row.querySelector('.time-inp'),dEl=row.querySelector('.date-inp');
     if(!tEl.value||!dEl.value)return;
     const ms=localToUTC(tz,dEl.value,tEl.value);
