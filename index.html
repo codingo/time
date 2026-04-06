@@ -1520,27 +1520,50 @@ loadURL();render();if(S.isLive)setLive(true);
 
   function buildMesh(){
     verts=[];tris=[];
-    // Mesh centered on canvas, extends MESH_W× wide (20% overhang each side)
-    // and MESH_H× tall (40% overhang top/bottom) — no black edges at viewport edges
-    const startX=W*(1-MESH_W)/2, startY=H*(1-MESH_H)/2;
-    const cw=W*MESH_W/(COLS-1), ch=H*MESH_H/(ROWS-1);
-    for(let r=0;r<ROWS;r++)
-      for(let c=0;c<COLS;c++)
+    // FSS.Plane exact layout (from fss.min.js source):
+    //   - (segments+1) × (slices+1) vertices  ← one extra on each edge
+    //   - column-major: outer loop x (0..segments), inner loop y (0..slices)
+    //   - anchor: geo_x = offsetX + x*segW, geo_y = offsetY - y*segH
+    //     where offsetX = -MESH_W*W/2, offsetY = +MESH_H*H/2  (y-up centered geo)
+    //   - canvas:  cx = W/2 + geo_x,  cy = H/2 - geo_y   (via setTransform y-flip)
+    //
+    // segmentWidth = MESH_W*W / COLS  (not COLS-1 — extra vertex on right edge)
+    // sliceHeight  = MESH_H*H / ROWS
+    const segW = MESH_W*W/COLS;   // per-cell width  = 1.4W/14 ≈ 128px
+    const segH = MESH_H*H/ROWS;   // per-cell height = 1.8H/18 ≈ 72px
+    const startX = W/2 - MESH_W*W/2;  // canvas x of leftmost column  = W*(1-MESH_W)/2
+    const startY = H/2 - MESH_H*H/2;  // canvas y of topmost row      = H*(1-MESH_H)/2
+
+    for(let xi=0;xi<=COLS;xi++){          // COLS+1 columns
+      for(let yi=0;yi<=ROWS;yi++){        // ROWS+1 rows
         verts.push({
-          ox:startX+c*cw, oy:startY+r*ch,
+          ox: startX + xi*segW,           // canvas x anchor
+          oy: startY + yi*segH,           // canvas y anchor
           x:0,y:0,z:0,
-          t:Math.random()*Math.PI*2,           // vertex.time: random phase
-          s:[                                    // vertex.step[0..2]: random speed per axis
-            Math.random()*0.8+0.2,             // range [0.2, 1.0] matching FSS.Plane
+          t: Math.random()*Math.PI*2,     // vertex.time  ∈ [0, 2π]
+          s: [                             // vertex.step[0..2] ∈ [0.2, 1.0]
+            Math.random()*0.8+0.2,
             Math.random()*0.8+0.2,
             Math.random()*0.8+0.2
           ]
         });
-    for(let r=0;r<ROWS-1;r++)
-      for(let c=0;c<COLS-1;c++){
-        const tl=r*COLS+c,tr=tl+1,bl=tl+COLS,br=bl+1;
-        tris.push([tl,tr,bl],[tr,br,bl]);
       }
+    }
+
+    // FSS triangle winding: v0=[x][y], v1=[x][y+1], v2=[x+1][y], v3=[x+1][y+1]
+    //   t0 = Triangle(v0,v1,v2),  t1 = Triangle(v2,v1,v3)
+    // In canvas-space (y-down) the y-flip reverses winding → swap v1↔v2 for front-facing normals:
+    //   t0 = (v0,v2,v1),  t1 = (v2,v3,v1)
+    const stride = ROWS+1;  // vertices per column
+    for(let xi=0;xi<COLS;xi++){
+      for(let yi=0;yi<ROWS;yi++){
+        const v0 = xi*stride+yi;
+        const v1 = xi*stride+yi+1;
+        const v2 = (xi+1)*stride+yi;
+        const v3 = (xi+1)*stride+yi+1;
+        tris.push([v0,v2,v1],[v2,v3,v1]);
+      }
+    }
   }
 
   function animVerts(ms){
